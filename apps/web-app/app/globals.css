@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -29,6 +29,13 @@
   
   .dark .border-slate-200 {
     @apply border-slate-700;
+  }
+
+  .dark input[type="text"],
+  .dark input[type="number"],
+  .dark textarea,
+  .dark select {
+    @apply bg-slate-900 text-slate-100 border-slate-700;
   }
   
   /* Hacker Theme Overrides */
