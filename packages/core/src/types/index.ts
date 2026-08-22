@@ -262,3 +262,53 @@ export interface ProposalGenerationInput {
 
 
 
+
+// --- G4+ Types ---
+
+export interface TailoredSkill {
+  name: string;
+  relevance: 'HIGH' | 'MEDIUM' | 'LOW';
+  reason: string;
+  evidenceId?: string;
+}
+
+export interface ApplicationIntelligence {
+  id: string;
+  opportunityId: string;
+  proposalId?: string;
+  tailoredResume: TailoredSkill[];
+  screeningAnswers: Record<string, string>;
+  suggestedRate: number | null;
+  suggestedTimeline: string;
+  readinessScore: number;
+  recommendation: 'APPLY' | 'REVIEW' | 'SKIP';
+  createdAt: Date;
+}
+
+export interface OutcomeRecord {
+  id: string;
+  opportunityId: string;
+  status: 'APPLIED' | 'INTERVIEW' | 'WON' | 'LOST' | 'WITHDRAWN';
+  clientResponse?: string;
+  feedback?: string;
+  createdAt: Date;
+}
+
+export interface ConversationMessage {
+  id: string;
+  opportunityId: string;
+  sender: 'CLIENT' | 'AGENT' | 'USER';
+  text: string;
+  isDraft: boolean;
+  createdAt: Date;
+}
+
+export interface PlatformAdapter {
+  name: string;
+  discover(): Promise<import('./index').RawOpportunity[]>;
+  getOpportunity(sourceJobId: string): Promise<import('./index').RawOpportunity | null>;
+  getClientContext(clientId: string): Promise<Record<string, unknown>>;
+  prepareApplication(application: ApplicationIntelligence, proposal: import('./index').ProposalRecord): Promise<boolean>;
+  prepareReply(opportunityId: string, text: string): Promise<boolean>;
+  getOutcome(opportunityId: string): Promise<OutcomeRecord | null>;
+}

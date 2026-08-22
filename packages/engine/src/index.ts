@@ -9,3 +9,4 @@ export * from './ai/VerificationGate';
 export * from './ingestion/LocalScheduler';
 export * from './ingestion/Pipeline';
 
+export * from './adapters/LocalDemoPlatformAdapter';
