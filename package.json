@@ -1,0 +1,39 @@
+{
+    "name":  "autogig",
+    "private":  true,
+    "workspaces":  [
+                       "apps/*",
+                       "packages/*",
+                       "web-app"
+                   ],
+    "scripts":  {
+                    "build":  "turbo run build",
+                    "dev":  "turbo run dev",
+                    "lint":  "turbo run lint",
+                    "test":  "turbo run test",
+                    "typecheck":  "turbo run typecheck",
+                    "db:init":  "node -e \"const { DatabaseSync } = require(\u0027node:sqlite\u0027); const db = new DatabaseSync(\u0027./data/autogig.db\u0027); require(\u0027./packages/db/dist/schema.js\u0027).initializeSchema(db)\"",
+                    "db:reset":  "node -e \"const fs=require(\u0027fs\u0027); if(fs.existsSync(\u0027./data/autogig.db\u0027)) fs.unlinkSync(\u0027./data/autogig.db\u0027)\" \u0026\u0026 npm run db:init",
+                    "ingest:demo":  "npm --workspace=ingestion-worker run start",
+                    "worker":  "npm --workspace=opportunity-worker run start",
+                    "worker:once":  "npm --workspace=opportunity-worker run start -- --once",
+                    "test:e2e":  "node tests/e2e.js",
+                    "test:gemini":  "node -e \"if(!process.env.GEMINI_API_KEY) { console.log(\u0027Skipping REAL Gemini test (no API key)\u0027); process.exit(0); } else { require(\u0027child_process\u0027).execSync(\u0027set AI_PROVIDER=gemini \u0026\u0026 npm run test:e2e\u0027, {stdio: \u0027inherit\u0027}); }\"",
+                    "test:gemini:smoke":  "dotenv -e .env.local -- node tests/gemini-smoke/index.js",
+                    "dev:web":  "npm --workspace=web-app run dev",
+                    "dev:api":  "dotenv -e .env.local -- npm --workspace=web-api run dev",
+                    "dev:worker":  "dotenv -e .env.local -- npm --workspace=opportunity-worker run dev",
+                    "dev:all":  "concurrently \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:worker\"",
+                    "test:gemini:e2e":  "dotenv -e .env.local -- node tests/gemini-e2e.js",
+                    "test:phase-f":  "node tests/phase-f.test.js",
+                    "ingest:demo:once": "node apps/ingestion-worker/dist/index.js --once --demo"
+                },
+    "devDependencies":  {
+                            "concurrently":  "^10.0.5",
+                            "dotenv":  "^17.4.2",
+                            "dotenv-cli":  "^11.0.0",
+                            "turbo":  "^2.0.0",
+                            "typescript":  "^5.3.3"
+                        },
+    "packageManager":  "npm@11.6.2"
+}

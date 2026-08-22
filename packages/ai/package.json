@@ -1,0 +1,19 @@
+{
+    "version":  "1.0.0",
+    "name":  "@autogig/ai",
+    "types":  "dist/index.d.ts",
+    "scripts":  {
+                    "clean":  "rimraf dist",
+                    "build":  "tsc"
+                },
+    "devDependencies":  {
+                            "typescript":  "^5.5.4"
+                        },
+    "dependencies":  {
+                         "zod":  "^3.23.8",
+                         "@autogig/core":  "*",
+                         "@genkit-ai/google-genai":  "latest",
+                         "genkit":  "latest"
+                     },
+    "main":  "dist/index.js"
+}

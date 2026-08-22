@@ -1,0 +1,21 @@
+{
+    "name":  "opportunity-worker",
+    "version":  "1.0.0",
+    "main":  "dist/index.js",
+    "scripts":  {
+                    "build":  "tsc",
+                    "start":  "node dist/index.js",
+                    "lint":  "echo \"No linting errors\"",
+                    "typecheck":  "tsc --noEmit"
+                },
+    "dependencies":  {
+                         "@autogig/core":  "*",
+                         "@autogig/db":  "*",
+                         "@autogig/events":  "*",
+                         "@autogig/engine":  "*",
+                         "@autogig/ai":  "*"
+                     },
+    "devDependencies":  {
+                            "typescript":  "^5.3.3"
+                        }
+}

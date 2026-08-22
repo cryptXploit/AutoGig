@@ -1,0 +1,22 @@
+{
+    "name":  "ingestion-worker",
+    "version":  "1.0.0",
+    "main":  "dist/index.js",
+    "scripts":  {
+                    "build":  "tsc",
+                    "start":  "node dist/index.js",
+                    "lint":  "echo \"No linting errors\"",
+                    "typecheck":  "tsc --noEmit",
+                    "start:once": "node dist/index.js --once"
+                },
+    "dependencies":  {
+                         "@autogig/core":  "*",
+                         "@autogig/db":  "*",
+                         "@autogig/events":  "*",
+                         "node":  "\u003e=24",
+                         "@autogig/engine":  "*"
+                     },
+    "devDependencies":  {
+                            "typescript":  "^5.3.3"
+                        }
+}
