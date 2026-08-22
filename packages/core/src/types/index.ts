@@ -268,6 +268,7 @@ export interface ProposalGenerationInput {
 export interface TailoredSkill {
   name: string;
   relevance: 'HIGH' | 'MEDIUM' | 'LOW';
+  matchType: 'DIRECT_MATCH' | 'RELATED_MATCH' | 'EVIDENCE_WEAK' | 'NO_EVIDENCE';
   reason: string;
   evidenceId?: string;
 }
@@ -312,3 +313,13 @@ export interface PlatformAdapter {
   prepareReply(opportunityId: string, text: string): Promise<boolean>;
   getOutcome(opportunityId: string): Promise<OutcomeRecord | null>;
 }
+
+export interface ApplicationIntelligenceInput {
+  opportunity: import("../schemas/opportunity").CanonicalOpportunity;
+  profile: import("./index").Profile;
+  preferences: import("./index").Preference;
+  evidence: import("./index").EvidenceContext[];
+  evaluation: import("./index").DeepEvaluationResult;
+}
+
+export type ApplicationIntelligenceResult = Omit<import("./index").ApplicationIntelligence, 'id' | 'opportunityId' | 'proposalId' | 'createdAt'>;

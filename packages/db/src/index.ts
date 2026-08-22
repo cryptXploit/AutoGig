@@ -6,3 +6,4 @@ export * from './repositories/SQLiteRunRepository';
 
 export * from "./repositories/SQLiteOtherRepositories";
 export * from './repositories/SQLiteOtherRepositories';
+export * from './SQLiteApplicationRepository';

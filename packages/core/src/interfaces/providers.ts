@@ -23,6 +23,7 @@ export interface AIProvider {
   generateProposal(input: import('../types').ProposalGenerationInput): Promise<string>;
   extractClaims(proposalText: string): Promise<import('../types').Claim[]>;
   verifyClaimsBatch(claims: import('../types').Claim[], evidence: import('../types').EvidenceContext[]): Promise<import('../types').Claim[]>;
+  generateApplicationIntelligence(input: import('../types').ApplicationIntelligenceInput): Promise<import('../types').ApplicationIntelligenceResult>;
 }
 
 export interface EmbeddingProvider {

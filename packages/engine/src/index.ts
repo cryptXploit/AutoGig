@@ -10,3 +10,4 @@ export * from './ingestion/LocalScheduler';
 export * from './ingestion/Pipeline';
 
 export * from './adapters/LocalDemoPlatformAdapter';
+export * from './ai/ApplicationIntelligenceEngine';

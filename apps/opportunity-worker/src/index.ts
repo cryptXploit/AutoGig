@@ -11,11 +11,12 @@ import {
   SQLiteEvaluationRepository,
   SQLiteProposalRepository,
   SQLiteClaimRepository,
-  SQLiteVerificationRepository
+  SQLiteVerificationRepository,
+  SQLiteApplicationRepository
 } from '@autogig/db';
 import { SQLiteEventBus } from '@autogig/events';
 import { getAIProvider } from '@autogig/ai';
-import { RuleEngine, LocalSimilarityRetriever, EconomicEngine, OpportunityScorer, DeepReasoner, ProposalGenerator, VerificationGate } from '@autogig/engine';
+import { RuleEngine, LocalSimilarityRetriever, EconomicEngine, OpportunityScorer, DeepReasoner, ProposalGenerator, VerificationGate, ApplicationIntelligenceEngine } from '@autogig/engine';
 
 const MAX_RETRIES = 3;
 const BASE_DELAY = 2;
@@ -99,10 +100,32 @@ async function processEvent(
         throw err;
     }
     
+
     const propText = await propGen.generate(opp as any, deepResult as any, evidenceList as any, profile as any, deepResult.recommendedAction as 'RECOMMEND' | 'COUNTER');
     const proposalId = `prop-${oppId}-1`;
     
+    // --- G4.2 Application Intelligence ---
+    const appIntelEngine = new ApplicationIntelligenceEngine(ai);
+    const appIntelResult = await appIntelEngine.generate({
+      opportunity: opp as any,
+      profile: profile as any,
+      preferences: pref as any,
+      evidence: evidenceList as any,
+      evaluation: deepResult as any
+    });
+
+    const appRepo = new SQLiteApplicationRepository(db);
+    appRepo.save({
+      id: `app-${oppId}-1`,
+      opportunityId: oppId,
+      proposalId: proposalId,
+      ...appIntelResult,
+      createdAt: new Date()
+    });
+    // ------------------------------------
+
     await proposalRepo.saveProposal({
+
        id: proposalId,
        opportunityId: oppId,
        text: propText,
