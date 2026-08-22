@@ -116,8 +116,8 @@ export default function Home() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="border-b border-slate-100 p-6 bg-slate-50/50 flex justify-between items-center">
+          <div className="bg-blue rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="border-b border-slate-00 p-6 bg-slate-800/50 flex justify-between items-center">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">Recent Opportunities</h2>
                 <p className="text-slate-500 mt-1 text-sm">Latest items processed by the pipeline.</p>

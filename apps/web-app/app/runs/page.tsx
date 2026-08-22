@@ -22,7 +22,7 @@ export default function RunsPage() {
       {loading ? <p>Loading...</p> : (
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse border border-slate-200">
-            <thead className="bg-slate-100">
+            <thead className="bg-blue-900">
               <tr className="border-b border-slate-200">
                 <th className="p-2">Run ID</th>
                 <th className="p-2">Stage</th>

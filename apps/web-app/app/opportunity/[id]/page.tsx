@@ -162,8 +162,8 @@ export default function OpportunityDetail({ params }: { params: { id: string } }
                         <div className="text-xs font-bold text-slate-500 uppercase mb-2">Automated Explanations</div>
                         <p className="text-sm text-slate-800 leading-relaxed">{evaluation.explanations || 'No explanations recorded.'}</p>
                       </div>
-                      <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
-                        <div className="text-xs font-bold text-amber-800 uppercase mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Qualification Flags</div>
+                      <div className="bg-blue-100/50 p-4 rounded-xl border border-amber-100">
+                        <div className="text-xs font-bold text-amber-900 uppercase mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Qualification Flags</div>
                         <p className="text-sm text-amber-900 leading-relaxed">
                           {evaluation.qualificationFlags && evaluation.qualificationFlags !== '[]' ? evaluation.qualificationFlags : 'No flags identified.'}
                         </p>
