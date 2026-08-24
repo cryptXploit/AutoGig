@@ -188,33 +188,59 @@ OPPORTUNITY:
 ${JSON.stringify(input.opportunity, null, 2)}
 
 CLIENT DATA:
-${JSON.stringify(input.client || input.opportunity.client || {}, null, 2)}
+${JSON.stringify(input.client || {}, null, 2)}
 `;
 
+    const ClientSignalSchema = z.object({
+      category: z.enum(['PAYMENT', 'HIRING_HISTORY', 'COMMUNICATION', 'SCOPE', 'BUDGET', 'OUTCOME']),
+      value: z.enum(['POSITIVE', 'NEGATIVE', 'UNKNOWN']),
+      source: z.string(),
+      confidence: z.number().min(0).max(100),
+      evidenceId: z.string().optional(),
+      verified: z.boolean(),
+      reason: z.string().optional()
+    });
+
+    const ClientIntelligenceSchema = z.object({
+      clientIdentity: z.string(),
+      trustScore: z.number().min(0).max(100),
+      paymentReliabilityScore: z.number().min(0).max(100),
+      hiringReliabilityScore: z.number().min(0).max(100),
+      communicationRiskScore: z.number().min(0).max(100),
+      scopeRiskScore: z.number().min(0).max(100),
+      budgetSignalScore: z.number().min(0).max(100),
+      overallRiskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH', 'UNKNOWN']),
+      confidence: z.number().min(0).max(100),
+      recommendation: z.enum(['PRIORITIZE', 'NORMAL', 'CAUTION', 'BLOCK']),
+      signals: z.array(ClientSignalSchema),
+      reasons: z.array(z.string()),
+      unknowns: z.array(z.string())
+    });
+
     const result = await ai.generate({
-      model: 'gemini-1.5-flash',
+      model: googleAI.model('gemini-1.5-flash'),
       prompt: prompt,
-      output: { format: 'json' }
+      output: { schema: ClientIntelligenceSchema }
     });
 
     const data = result.output as any;
     if (!data) throw new Error("Failed to generate client intelligence");
     
     return {
-      opportunityId: input.opportunity.sourceJobId,
-      clientIdentity: data.clientIdentity || 'UNKNOWN',
-      trustScore: data.trustScore || 50,
-      paymentReliabilityScore: data.paymentReliabilityScore || 50,
-      hiringReliabilityScore: data.hiringReliabilityScore || 50,
-      communicationRiskScore: data.communicationRiskScore || 50,
-      scopeRiskScore: data.scopeRiskScore || 50,
-      budgetSignalScore: data.budgetSignalScore || 50,
-      overallRiskLevel: data.overallRiskLevel || 'UNKNOWN',
-      confidence: data.confidence || 50,
-      recommendation: data.recommendation || 'NORMAL',
-      signals: data.signals || [],
-      reasons: data.reasons || [],
-      unknowns: data.unknowns || [],
+      opportunityId: input.opportunityId,
+      clientIdentity: data.clientIdentity,
+      trustScore: data.trustScore,
+      paymentReliabilityScore: data.paymentReliabilityScore,
+      hiringReliabilityScore: data.hiringReliabilityScore,
+      communicationRiskScore: data.communicationRiskScore,
+      scopeRiskScore: data.scopeRiskScore,
+      budgetSignalScore: data.budgetSignalScore,
+      overallRiskLevel: data.overallRiskLevel,
+      confidence: data.confidence,
+      recommendation: data.recommendation,
+      signals: data.signals,
+      reasons: data.reasons,
+      unknowns: data.unknowns,
       createdAt: new Date()
     } as any;
   }
