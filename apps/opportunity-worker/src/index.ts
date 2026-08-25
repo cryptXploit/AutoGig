@@ -47,7 +47,7 @@ async function updateDecisionPlan(db: any, oppId: string, triggerEvent: string =
     }
 
     
-    const { OpportunityLifecycleEngine } = require('@autogig/engine');
+    const { OpportunityLifecycleEngine, DecisionExplainabilityEngine } = require('@autogig/engine');
     const lifecycleRepo = new (require('@autogig/db').SQLiteLifecycleRepository)(db);
     const historyRepo = new (require('@autogig/db').SQLiteDecisionHistoryRepository)(db);
 
@@ -91,7 +91,34 @@ async function updateDecisionPlan(db: any, oppId: string, triggerEvent: string =
        
        lifecycleRepo.save(evalResult.newState);
        
+       
        console.log(`[LifecycleEngine] ${oppId}: Decision changed to ${plan.finalDecision}`);
+       
+       // Generate Explainability Report
+       const explainRepo = new (require('@autogig/db').SQLiteDecisionExplainabilityRepository)(db);
+       const evRepo = new (require('@autogig/db').SQLiteEvidenceRepository)(db);
+       // Using u1 for demo as opportunity doesn't carry userId in this scope
+       const evidence: any[] = [];
+       const histList = historyRepo.findByOpportunityId(oppId) || [];
+       
+       const expEngine = new DecisionExplainabilityEngine();
+       const report = expEngine.generateReport(
+         opp,
+         evaluation,
+         clientIntelligence,
+         applicationIntelligence,
+         evaluation.historicalIntelligence || null,
+         latestConv,
+         plan,
+         evidence,
+         histList,
+         [],
+         []
+       );
+       
+       explainRepo.save(report);
+       console.log(`[ExplainabilityEngine] ${oppId}: Report generated (Coverage ${Math.round(report.evidenceCoverage)}%)`);
+
     } else {
        console.log(`[LifecycleEngine] ${oppId}: Decision STABLE_REVIEW.`);
     }

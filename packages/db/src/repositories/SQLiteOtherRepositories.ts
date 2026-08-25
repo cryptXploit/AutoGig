@@ -1,4 +1,4 @@
-import { DecisionPlan, LifecycleState, DecisionPlanHistory } from '@autogig/core';
+import { DecisionPlan, LifecycleState, DecisionPlanHistory, ExplainabilityReport } from '@autogig/core';
 import { EvidenceRepository, Evidence, Profile, Preference } from '@autogig/core';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -505,5 +505,44 @@ export class SQLiteDecisionHistoryRepository {
       decisionTrace: JSON.parse(row.decisionTrace || '{}'),
       createdAt: new Date(row.createdAt)
     }));
+  }
+}
+
+
+export class SQLiteDecisionExplainabilityRepository {
+  constructor(private db: DatabaseSync) {}
+
+  save(report: ExplainabilityReport): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO decision_explainability (
+        id, opportunityId, decision, summary, confidence, evidenceCoverage, reportJson, generatedAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(opportunityId) DO UPDATE SET
+        decision=excluded.decision,
+        summary=excluded.summary,
+        confidence=excluded.confidence,
+        evidenceCoverage=excluded.evidenceCoverage,
+        reportJson=excluded.reportJson,
+        updatedAt=excluded.updatedAt
+    `);
+    
+    stmt.run(
+      `exp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      report.opportunityId,
+      report.decision,
+      report.summary,
+      report.confidence,
+      report.evidenceCoverage,
+      JSON.stringify(report),
+      report.generatedAt.toISOString(),
+      new Date().toISOString()
+    );
+  }
+
+  findByOpportunityId(opportunityId: string): ExplainabilityReport | null {
+    const stmt = this.db.prepare('SELECT reportJson FROM decision_explainability WHERE opportunityId = ?');
+    const row = stmt.get(opportunityId) as any;
+    if (!row) return null;
+    return JSON.parse(row.reportJson);
   }
 }

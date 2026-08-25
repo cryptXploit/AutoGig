@@ -20,3 +20,5 @@ export * from './ai/AdaptiveLearningEngine';
 export * from './decision/DecisionFusionEngine';
 
 export * from './lifecycle/OpportunityLifecycleEngine';
+
+export * from './explainability/DecisionExplainabilityEngine';

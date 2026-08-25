@@ -528,3 +528,65 @@ export interface DecisionPlanHistory {
   decisionTrace: DecisionTrace;
   createdAt: Date;
 }
+
+
+export interface DecisionFactor {
+  id: string;
+  category: string;
+  signal: string;
+  value: any;
+  contribution: number;
+  direction: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+  explanation: string;
+  evidenceIds: string[];
+}
+
+export interface EvidenceNode {
+  evidenceId: string;
+  sourceType: string;
+  sourceReference: string;
+  claim: string;
+  verificationStatus: string;
+  strength: number;
+  supportsDecision: boolean;
+  explanation: string;
+}
+
+export interface ConstraintNode {
+  constraint: string;
+  status: string;
+  source: string;
+  effect: string;
+}
+
+export interface UncertaintyNode {
+  uncertainty: string;
+  impact: string;
+  reason: string;
+  requiredAction: string;
+}
+
+export interface DecisionHistoryExplanation {
+  previous: string;
+  trigger: string;
+  new: string;
+  why: string;
+  confidenceChange: string;
+}
+
+export interface ExplainabilityReport {
+  opportunityId: string;
+  decision: DecisionFinalAction;
+  summary: string;
+  confidence: number;
+  decisionFactors: DecisionFactor[];
+  evidenceNodes: EvidenceNode[];
+  constraintNodes: ConstraintNode[];
+  uncertaintyNodes: UncertaintyNode[];
+  decisionHistory: DecisionHistoryExplanation[];
+  evidenceCoverage: number;
+  unsupportedClaims: string[];
+  missingEvidence: string[];
+  humanReviewReason?: string;
+  generatedAt: Date;
+}

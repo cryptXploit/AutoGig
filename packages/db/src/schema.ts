@@ -314,4 +314,20 @@ export function initializeSchema(db: DatabaseSync): void {
     );
   `);
 
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS decision_explainability (
+      id TEXT PRIMARY KEY,
+      opportunityId TEXT NOT NULL UNIQUE,
+      decision TEXT NOT NULL,
+      summary TEXT,
+      confidence REAL NOT NULL,
+      evidenceCoverage REAL NOT NULL,
+      reportJson TEXT NOT NULL,
+      generatedAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY(opportunityId) REFERENCES opportunities(id) ON DELETE CASCADE
+    );
+  `);
+
 }
