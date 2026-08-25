@@ -260,4 +260,25 @@ export function initializeSchema(db: DatabaseSync): void {
   try { db.exec("ALTER TABLE outcomes ADD COLUMN failureReason TEXT"); } catch(e) {}
   try { db.exec("ALTER TABLE outcomes ADD COLUMN metadata TEXT"); } catch(e) {}
 
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS decision_plans (
+      id TEXT PRIMARY KEY,
+      opportunityId TEXT NOT NULL UNIQUE,
+      finalDecision TEXT NOT NULL,
+      confidence REAL NOT NULL,
+      priority TEXT NOT NULL,
+      reasons TEXT,
+      riskFlags TEXT,
+      missingInformation TEXT,
+      timingRecommendation TEXT,
+      applicationReadiness REAL,
+      humanApprovalRequired INTEGER NOT NULL,
+      decisionTrace TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY(opportunityId) REFERENCES opportunities(id) ON DELETE CASCADE
+    );
+  `);
+
 }

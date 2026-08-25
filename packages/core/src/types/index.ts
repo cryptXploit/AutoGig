@@ -462,3 +462,37 @@ export interface ClientIntelligenceInput {
   client: OpportunityClient;
   evidence: EvidenceContext[];
 }
+
+
+export type DecisionFinalAction = 'APPLY_NOW' | 'APPLY_AFTER_REVIEW' | 'ASK_CLIENT_FIRST' | 'NEGOTIATE' | 'WAIT' | 'SKIP' | 'BLOCK';
+export type DecisionPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface DecisionTrace {
+  baseEvaluation?: Record<string, any>;
+  clientSignal?: Record<string, any>;
+  applicationSignal?: Record<string, any>;
+  historicalSignal?: Record<string, any>;
+  conversationSignal?: Record<string, any>;
+  timingSignal?: Record<string, any>;
+  hardConstraints: string[];
+  finalDecision: DecisionFinalAction;
+}
+
+export interface DecisionPlan {
+  id: string;
+  opportunityId: string;
+  finalDecision: DecisionFinalAction;
+  confidence: number;
+  priority: DecisionPriority;
+  reasons: string[];
+  riskFlags: string[];
+  missingInformation: string[];
+  recommendedNextAction: string;
+  timingRecommendation: string;
+  applicationReadiness: number;
+  humanApprovalRequired: boolean;
+  evidenceIds: string[];
+  decisionTrace: DecisionTrace;
+  createdAt: Date;
+  updatedAt: Date;
+}

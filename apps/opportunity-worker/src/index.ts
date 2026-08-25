@@ -13,6 +13,59 @@ async function applyHistoricalIntelligence(opp: any, evalRecord: any, db: any) {
   }
 }
 
+
+async function updateDecisionPlan(db: any, oppId: string) {
+  try {
+    const { DecisionFusionEngine } = require('@autogig/engine');
+    const oppRepo = new (require('@autogig/db').SQLiteOpportunityRepository)(db);
+    const evalRepo = new (require('@autogig/db').SQLiteEvaluationRepository)(db);
+    const ciRepo = new (require('@autogig/db').SQLiteClientIntelligenceRepository)(db);
+    const appRepo = new (require('@autogig/db').SQLiteApplicationRepository)(db);
+    const convRepo = new (require('@autogig/db').SQLiteConversationRepository)(db);
+    const dpRepo = new (require('@autogig/db').SQLiteDecisionPlanRepository)(db);
+    const profRepo = new (require('@autogig/db').SQLiteProfileRepository)(db);
+    const prefRepo = new (require('@autogig/db').SQLitePreferenceRepository)(db);
+
+    const opp = await oppRepo.findById(oppId);
+    if (!opp) return;
+
+    let profile = await profRepo.getProfile('u1');
+    let pref = await prefRepo.getPreference('u1');
+    if (!profile) profile = { userId: 'u1', name: 'Demo User', skills: ['Node.js', 'TypeScript', 'SQL', 'React'], resumeKey: '' } as any;
+    if (!pref) pref = { userId: 'u1', targetRate: 100, minRate: 50, blockedClients: ['Evil Corp'], updatedAt: new Date() } as any;
+
+    const evaluation = await evalRepo.findByOpportunityId(oppId);
+    if (!evaluation) return; // Wait until evaluation exists
+
+    const clientIntelligence = await ciRepo.getByOpportunityId(oppId) || { recommendation: 'NORMAL', overallRiskLevel: 'UNKNOWN', unknowns: [] };
+    const applicationIntelligence = await appRepo.findByOpportunityId(oppId);
+    
+    let messages = convRepo.findByOpportunityId(oppId);
+    let latestConv = null;
+    if (messages && messages.length > 0) {
+      latestConv = messages[messages.length - 1].intelligence || null;
+    }
+
+    const fusionEngine = new DecisionFusionEngine();
+    const plan = fusionEngine.fuse(
+      opp,
+      evaluation,
+      clientIntelligence,
+      applicationIntelligence,
+      evaluation.historicalIntelligence || null,
+      latestConv,
+      profile,
+      pref
+    );
+
+    dpRepo.save(plan);
+    console.log(`[DecisionPlanner] Generated Unified Action Plan for ${oppId}: ${plan.finalDecision}`);
+  } catch (err) {
+    console.error(`Failed to update decision plan for ${oppId}:`, err);
+  }
+}
+
+
 import { ClientIntelligenceEngine, LocalDemoPlatformAdapter } from '@autogig/engine';
 import { SQLiteClientIntelligenceRepository } from '@autogig/db';
 import path from 'path';
@@ -66,7 +119,8 @@ export async function processEvent(
 
   if (event.eventType === 'OPPORTUNITY_DEEP_REASON_REQUIRED') {
     if (opp.status !== 'EVALUATING') {
-       bus.acknowledge(event.eventId);
+       await updateDecisionPlan(db, oppId);
+      bus.acknowledge(event.eventId);
        return;
     }
     
@@ -343,6 +397,7 @@ await evalRepo.saveEvaluation(evalRecord);
           
           await evalRepo.saveEvaluation(evalRecord);
 
+        await updateDecisionPlan(db, oppId);
       }
 
       if (finalState === 'EVALUATING' && (route === 'DEEP_REASON_REQUIRED' || route === 'HIGH_PRIORITY_DEEP_REASON' || route === 'COUNTER_CANDIDATE')) {
@@ -397,6 +452,7 @@ await evalRepo.saveEvaluation(evalRecord);
       });
       console.log(`[Worker] Generated conversation draft for ${oppId} with status ${finalStatus}`);
     }
+      await updateDecisionPlan(db, oppId);
 
     bus.acknowledge(event.eventId);
   } else {

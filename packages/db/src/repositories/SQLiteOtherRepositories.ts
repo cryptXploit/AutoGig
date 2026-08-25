@@ -1,3 +1,4 @@
+import { DecisionPlan } from '@autogig/core';
 import { EvidenceRepository, Evidence, Profile, Preference } from '@autogig/core';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -332,5 +333,73 @@ export class SQLiteConversationRepository {
       message.validationResult ? JSON.stringify(message.validationResult) : null,
       message.createdAt.toISOString()
     );
+  }
+}
+
+
+export class SQLiteDecisionPlanRepository {
+  constructor(private db: DatabaseSync) {}
+
+  save(plan: DecisionPlan): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO decision_plans (
+        id, opportunityId, finalDecision, confidence, priority, reasons, riskFlags,
+        missingInformation, timingRecommendation, applicationReadiness, humanApprovalRequired,
+        decisionTrace, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(opportunityId) DO UPDATE SET
+        finalDecision=excluded.finalDecision,
+        confidence=excluded.confidence,
+        priority=excluded.priority,
+        reasons=excluded.reasons,
+        riskFlags=excluded.riskFlags,
+        missingInformation=excluded.missingInformation,
+        timingRecommendation=excluded.timingRecommendation,
+        applicationReadiness=excluded.applicationReadiness,
+        humanApprovalRequired=excluded.humanApprovalRequired,
+        decisionTrace=excluded.decisionTrace,
+        updatedAt=excluded.updatedAt
+    `);
+    
+    stmt.run(
+      plan.id,
+      plan.opportunityId,
+      plan.finalDecision,
+      plan.confidence,
+      plan.priority,
+      JSON.stringify(plan.reasons),
+      JSON.stringify(plan.riskFlags),
+      JSON.stringify(plan.missingInformation),
+      plan.timingRecommendation,
+      plan.applicationReadiness,
+      plan.humanApprovalRequired ? 1 : 0,
+      JSON.stringify(plan.decisionTrace),
+      plan.createdAt.toISOString(),
+      plan.updatedAt.toISOString()
+    );
+  }
+
+  findByOpportunityId(opportunityId: string): DecisionPlan | null {
+    const stmt = this.db.prepare('SELECT * FROM decision_plans WHERE opportunityId = ?');
+    const row = stmt.get(opportunityId) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      opportunityId: row.opportunityId,
+      finalDecision: row.finalDecision,
+      confidence: row.confidence,
+      priority: row.priority,
+      reasons: JSON.parse(row.reasons || '[]'),
+      riskFlags: JSON.parse(row.riskFlags || '[]'),
+      recommendedNextAction: '',
+      missingInformation: JSON.parse(row.missingInformation || '[]'),
+      timingRecommendation: row.timingRecommendation,
+      applicationReadiness: row.applicationReadiness,
+      humanApprovalRequired: row.humanApprovalRequired === 1,
+      evidenceIds: [],
+      decisionTrace: JSON.parse(row.decisionTrace || '{}'),
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt)
+    };
   }
 }

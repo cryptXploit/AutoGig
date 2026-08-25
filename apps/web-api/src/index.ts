@@ -97,6 +97,8 @@ app.get('/api/opportunities/:id', async (req, res) => {
     const applicationIntelligence = appRepo.findByOpportunityId(opp.id);
     const convRepo = new (require('@autogig/db').SQLiteConversationRepository)(db);
     const conversations = convRepo.findByOpportunityId(opp.id);
+      const dpRepo = new (require('@autogig/db').SQLiteDecisionPlanRepository)(db);
+      const decisionPlan = dpRepo.findByOpportunityId(opp.id);
 
     res.json({ 
       success: true, 
@@ -109,8 +111,10 @@ app.get('/api/opportunities/:id', async (req, res) => {
         claims,
         evidence,
         clientIntelligence,
-      applicationIntelligence
-    }
+      applicationIntelligence,
+        decisionPlan,
+        conversations
+      }
     });
 
   } catch (err: unknown) {
