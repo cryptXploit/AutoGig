@@ -1,4 +1,4 @@
-import { DecisionPlan } from '@autogig/core';
+import { DecisionPlan, LifecycleState, DecisionPlanHistory } from '@autogig/core';
 import { EvidenceRepository, Evidence, Profile, Preference } from '@autogig/core';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -401,5 +401,109 @@ export class SQLiteDecisionPlanRepository {
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt)
     };
+  }
+}
+
+
+export class SQLiteLifecycleRepository {
+  constructor(private db: DatabaseSync) {}
+
+  save(state: LifecycleState): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO lifecycle_states (
+        id, opportunityId, opportunityFingerprint, clientFingerprint, applicationFingerprint,
+        historicalFingerprint, conversationFingerprint, lastDecisionPlanId,
+        lastEvaluatedAt, nextReviewAt, changeReason
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(opportunityId) DO UPDATE SET
+        opportunityFingerprint=excluded.opportunityFingerprint,
+        clientFingerprint=excluded.clientFingerprint,
+        applicationFingerprint=excluded.applicationFingerprint,
+        historicalFingerprint=excluded.historicalFingerprint,
+        conversationFingerprint=excluded.conversationFingerprint,
+        lastDecisionPlanId=excluded.lastDecisionPlanId,
+        lastEvaluatedAt=excluded.lastEvaluatedAt,
+        nextReviewAt=excluded.nextReviewAt,
+        changeReason=excluded.changeReason
+    `);
+    
+    stmt.run(
+      state.id,
+      state.opportunityId,
+      state.opportunityFingerprint,
+      state.clientFingerprint,
+      state.applicationFingerprint,
+      state.historicalFingerprint,
+      state.conversationFingerprint,
+      state.lastDecisionPlanId || null,
+      state.lastEvaluatedAt.toISOString(),
+      state.nextReviewAt ? state.nextReviewAt.toISOString() : null,
+      state.changeReason || null
+    );
+  }
+
+  findByOpportunityId(opportunityId: string): LifecycleState | null {
+    const stmt = this.db.prepare('SELECT * FROM lifecycle_states WHERE opportunityId = ?');
+    const row = stmt.get(opportunityId) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      opportunityId: row.opportunityId,
+      opportunityFingerprint: row.opportunityFingerprint,
+      clientFingerprint: row.clientFingerprint,
+      applicationFingerprint: row.applicationFingerprint,
+      historicalFingerprint: row.historicalFingerprint,
+      conversationFingerprint: row.conversationFingerprint,
+      lastDecisionPlanId: row.lastDecisionPlanId,
+      lastEvaluatedAt: new Date(row.lastEvaluatedAt),
+      nextReviewAt: row.nextReviewAt ? new Date(row.nextReviewAt) : undefined,
+      changeReason: row.changeReason
+    };
+  }
+}
+
+export class SQLiteDecisionHistoryRepository {
+  constructor(private db: DatabaseSync) {}
+
+  save(history: DecisionPlanHistory): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO decision_plan_history (
+        id, opportunityId, decisionPlanId, previousDecision, newDecision,
+        triggerEvent, changeReason, previousConfidence, newConfidence,
+        decisionTrace, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    stmt.run(
+      history.id,
+      history.opportunityId,
+      history.decisionPlanId,
+      history.previousDecision || null,
+      history.newDecision,
+      history.triggerEvent,
+      history.changeReason,
+      history.previousConfidence || null,
+      history.newConfidence,
+      JSON.stringify(history.decisionTrace),
+      history.createdAt.toISOString()
+    );
+  }
+
+  findByOpportunityId(opportunityId: string): DecisionPlanHistory[] {
+    const stmt = this.db.prepare('SELECT * FROM decision_plan_history WHERE opportunityId = ? ORDER BY createdAt DESC');
+    const rows = stmt.all(opportunityId) as any[];
+    return rows.map(row => ({
+      id: row.id,
+      opportunityId: row.opportunityId,
+      decisionPlanId: row.decisionPlanId,
+      previousDecision: row.previousDecision,
+      newDecision: row.newDecision,
+      triggerEvent: row.triggerEvent,
+      changeReason: row.changeReason,
+      previousConfidence: row.previousConfidence,
+      newConfidence: row.newConfidence,
+      decisionTrace: JSON.parse(row.decisionTrace || '{}'),
+      createdAt: new Date(row.createdAt)
+    }));
   }
 }

@@ -18,3 +18,5 @@ export * from './ai/ConversationIntelligenceEngine';
 export * from './ai/ConversationValidator';
 export * from './ai/AdaptiveLearningEngine';
 export * from './decision/DecisionFusionEngine';
+
+export * from './lifecycle/OpportunityLifecycleEngine';

@@ -14,7 +14,7 @@ async function applyHistoricalIntelligence(opp: any, evalRecord: any, db: any) {
 }
 
 
-async function updateDecisionPlan(db: any, oppId: string) {
+async function updateDecisionPlan(db: any, oppId: string, triggerEvent: string = 'OPPORTUNITY_UPDATED') {
   try {
     const { DecisionFusionEngine } = require('@autogig/engine');
     const oppRepo = new (require('@autogig/db').SQLiteOpportunityRepository)(db);
@@ -46,6 +46,25 @@ async function updateDecisionPlan(db: any, oppId: string) {
       latestConv = messages[messages.length - 1].intelligence || null;
     }
 
+    
+    const { OpportunityLifecycleEngine } = require('@autogig/engine');
+    const lifecycleRepo = new (require('@autogig/db').SQLiteLifecycleRepository)(db);
+    const historyRepo = new (require('@autogig/db').SQLiteDecisionHistoryRepository)(db);
+
+    const currentState = lifecycleRepo.findByOpportunityId(oppId);
+    const oldPlan = dpRepo.findByOpportunityId(oppId);
+
+    const lifecycleEngine = new OpportunityLifecycleEngine();
+    const newFingerprints = lifecycleEngine.extractFingerprints(opp, clientIntelligence, applicationIntelligence, evaluation.historicalIntelligence || null, latestConv);
+
+    const evalResult = lifecycleEngine.detectChanges(triggerEvent, currentState, newFingerprints);
+    
+    if (evalResult.requiresRefresh.includes('NO_CHANGE') && oldPlan) {
+      console.log(`[LifecycleEngine] ${oppId}: No change detected.`);
+      return;
+    }
+    
+    // We rebuild decision plan
     const fusionEngine = new DecisionFusionEngine();
     const plan = fusionEngine.fuse(
       opp,
@@ -58,9 +77,25 @@ async function updateDecisionPlan(db: any, oppId: string) {
       pref
     );
 
-    dpRepo.save(plan);
-    console.log(`[DecisionPlanner] Generated Unified Action Plan for ${oppId}: ${plan.finalDecision}`);
-  } catch (err) {
+    const stability = lifecycleEngine.checkDecisionStability(oldPlan, plan, triggerEvent, evalResult.changeReason);
+    
+    if (!stability.isStable) {
+       dpRepo.save(plan);
+       if (stability.historyEntry) {
+         historyRepo.save(stability.historyEntry);
+       }
+       
+       evalResult.newState.opportunityId = oppId;
+       evalResult.newState.lastDecisionPlanId = plan.id;
+       evalResult.newState.nextReviewAt = lifecycleEngine.calculateNextReview(opp, plan);
+       
+       lifecycleRepo.save(evalResult.newState);
+       
+       console.log(`[LifecycleEngine] ${oppId}: Decision changed to ${plan.finalDecision}`);
+    } else {
+       console.log(`[LifecycleEngine] ${oppId}: Decision STABLE_REVIEW.`);
+    }
+} catch (err) {
     console.error(`Failed to update decision plan for ${oppId}:`, err);
   }
 }
@@ -119,9 +154,9 @@ export async function processEvent(
 
   if (event.eventType === 'OPPORTUNITY_DEEP_REASON_REQUIRED') {
     if (opp.status !== 'EVALUATING') {
-       await updateDecisionPlan(db, oppId);
+       await updateDecisionPlan(db, oppId, 'OPPORTUNITY_DEEP_REASON_REQUIRED');
       bus.acknowledge(event.eventId);
-       return;
+      return;
     }
     
     const proposalRepo = new SQLiteProposalRepository(db);

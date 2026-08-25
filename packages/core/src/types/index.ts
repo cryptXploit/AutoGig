@@ -496,3 +496,35 @@ export interface DecisionPlan {
   createdAt: Date;
   updatedAt: Date;
 }
+
+
+export interface LifecycleFingerprints {
+  opportunityFingerprint: string;
+  clientFingerprint: string;
+  applicationFingerprint: string;
+  historicalFingerprint: string;
+  conversationFingerprint: string;
+}
+
+export interface LifecycleState extends LifecycleFingerprints {
+  id: string;
+  opportunityId: string;
+  lastDecisionPlanId?: string;
+  lastEvaluatedAt: Date;
+  nextReviewAt?: Date;
+  changeReason?: string;
+}
+
+export interface DecisionPlanHistory {
+  id: string;
+  opportunityId: string;
+  decisionPlanId: string;
+  previousDecision?: DecisionFinalAction;
+  newDecision: DecisionFinalAction;
+  triggerEvent: string;
+  changeReason: string;
+  previousConfidence?: number;
+  newConfidence: number;
+  decisionTrace: DecisionTrace;
+  createdAt: Date;
+}

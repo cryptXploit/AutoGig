@@ -281,4 +281,37 @@ export function initializeSchema(db: DatabaseSync): void {
     );
   `);
 
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS lifecycle_states (
+      id TEXT PRIMARY KEY,
+      opportunityId TEXT NOT NULL UNIQUE,
+      opportunityFingerprint TEXT,
+      clientFingerprint TEXT,
+      applicationFingerprint TEXT,
+      historicalFingerprint TEXT,
+      conversationFingerprint TEXT,
+      lastDecisionPlanId TEXT,
+      lastEvaluatedAt TEXT NOT NULL,
+      nextReviewAt TEXT,
+      changeReason TEXT,
+      FOREIGN KEY(opportunityId) REFERENCES opportunities(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS decision_plan_history (
+      id TEXT PRIMARY KEY,
+      opportunityId TEXT NOT NULL,
+      decisionPlanId TEXT NOT NULL,
+      previousDecision TEXT,
+      newDecision TEXT NOT NULL,
+      triggerEvent TEXT NOT NULL,
+      changeReason TEXT,
+      previousConfidence REAL,
+      newConfidence REAL NOT NULL,
+      decisionTrace TEXT,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY(opportunityId) REFERENCES opportunities(id) ON DELETE CASCADE
+    );
+  `);
+
 }

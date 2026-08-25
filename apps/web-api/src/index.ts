@@ -97,6 +97,12 @@ app.get('/api/opportunities/:id', async (req, res) => {
     const applicationIntelligence = appRepo.findByOpportunityId(opp.id);
     const convRepo = new (require('@autogig/db').SQLiteConversationRepository)(db);
     const conversations = convRepo.findByOpportunityId(opp.id);
+      
+      const lifecycleRepo = new (require('@autogig/db').SQLiteLifecycleRepository)(db);
+      const historyRepo = new (require('@autogig/db').SQLiteDecisionHistoryRepository)(db);
+      const lifecycleState = lifecycleRepo.findByOpportunityId(opp.id);
+      const decisionHistory = historyRepo.findByOpportunityId(opp.id);
+
       const dpRepo = new (require('@autogig/db').SQLiteDecisionPlanRepository)(db);
       const decisionPlan = dpRepo.findByOpportunityId(opp.id);
 
@@ -113,6 +119,8 @@ app.get('/api/opportunities/:id', async (req, res) => {
         clientIntelligence,
       applicationIntelligence,
         decisionPlan,
+        lifecycleState,
+        decisionHistory,
         conversations
       }
     });
