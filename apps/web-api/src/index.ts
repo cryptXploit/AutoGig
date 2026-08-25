@@ -119,7 +119,36 @@ app.get('/api/opportunities/:id', async (req, res) => {
   }
 });
 
-app.post('/api/opportunities/:id/approve', async (req, res) => {
+
+app.post('/api/opportunities/:id/outcome', async (req, res) => {
+  try {
+    const oppId = req.params.id;
+    const { status, clientFeedback } = req.body;
+    const outcomeRepo = new (require('@autogig/db').SQLiteOutcomeRepository)(db);
+    
+    let outcome = outcomeRepo.findByOpportunityId(oppId);
+    if (!outcome) {
+       outcome = {
+         id: `out-${Date.now()}`,
+         opportunityId: oppId,
+         status: status || 'APPLIED',
+         clientFeedback,
+         createdAt: new Date()
+       };
+    } else {
+       if (status) outcome.status = status;
+       if (clientFeedback) outcome.clientFeedback = clientFeedback;
+    }
+    
+    outcomeRepo.save(outcome);
+    res.json({ success: true, outcome });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ success: false, error: msg });
+  }
+});
+
+  app.post('/api/opportunities/:id/approve', async (req, res) => {
   try {
     const opp = await oppRepo.findById(req.params.id);
     if (!opp) return res.status(404).json({ success: false, error: 'Not found' });

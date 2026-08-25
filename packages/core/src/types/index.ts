@@ -168,6 +168,17 @@ export enum QualificationFlag {
   EVIDENCE_INSUFFICIENT = 'EVIDENCE_INSUFFICIENT'
 }
 
+
+export interface HistoricalIntelligence {
+  historicalSuccessAdjustment: number;
+  historicalConfidence: number;
+  patternConfidence: number;
+  recommendationConfidence: number;
+  successRate: number;
+  similarOutcomeCount: number;
+  explanation: string;
+}
+
 export interface ScoreBreakdown {
   overall: number;          
   technicalFit: number;     
@@ -180,6 +191,9 @@ export interface ScoreBreakdown {
   explanations: string[];
   evidenceConfidence: number;
   economicSummary: EconomicAnalysis;
+
+  historicalIntelligence?: HistoricalIntelligence;
+  finalScore?: number;
 }
 
 export interface EvaluationRecord {
@@ -330,10 +344,21 @@ export interface ApplicationIntelligence {
 export interface OutcomeRecord {
   id: string;
   opportunityId: string;
-  status: 'APPLIED' | 'INTERVIEW' | 'WON' | 'LOST' | 'WITHDRAWN';
+  status: 'APPLIED' | 'INTERVIEW' | 'WON' | 'LOST' | 'WITHDRAWN' | 'CLIENT_REPLIED' | 'NO_RESPONSE' | 'PAYMENT_SUCCESS' | 'PAYMENT_FAILED';
   clientResponse?: string;
   feedback?: string;
   createdAt: Date;
+  clientFeedback?: 'POSITIVE_FEEDBACK' | 'NEGATIVE_FEEDBACK' | 'NEUTRAL';
+  hired?: boolean;
+  paymentSuccess?: boolean;
+  rating?: number;
+  responseTimeDays?: number;
+  proposalAccepted?: boolean;
+  conversationAccepted?: boolean;
+  realizedRate?: number;
+  realizedTimeline?: string;
+  failureReason?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export type ConversationStatus = 'GENERATED' | 'VALIDATED' | 'PENDING_APPROVAL' | 'APPROVED' | 'READY_TO_DISPATCH' | 'SENT' | 'RECEIVED';

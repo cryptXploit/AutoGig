@@ -133,7 +133,7 @@ export default function OpportunityDetail({ params }: { params: { id: string } }
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                       <div className="text-xs font-bold text-slate-400 uppercase mb-1">Score</div>
-                      <div className="text-3xl font-black text-indigo-600">{evaluation.overall || '--'}/100</div>
+                      <div className="text-3xl font-black text-indigo-600">{evaluation.finalScore || evaluation.overall || '--'}/100</div>
                     </div>
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                       <div className="text-xs font-bold text-slate-400 uppercase mb-1">Action</div>

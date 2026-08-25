@@ -243,4 +243,17 @@ export function initializeSchema(db: DatabaseSync): void {
   try { db.exec("ALTER TABLE conversations ADD COLUMN status TEXT NOT NULL DEFAULT 'RECEIVED'"); } catch(e) {}
   try { db.exec("ALTER TABLE conversations ADD COLUMN intelligence TEXT"); } catch(e) {}
   try { db.exec("ALTER TABLE conversations ADD COLUMN validationResult TEXT"); } catch(e) {}
+
+  try { db.exec("ALTER TABLE outcomes ADD COLUMN clientFeedback TEXT"); } catch(e) {}
+  try { db.exec("ALTER TABLE outcomes ADD COLUMN hired INTEGER"); } catch(e) {}
+  try { db.exec("ALTER TABLE outcomes ADD COLUMN paymentSuccess INTEGER"); } catch(e) {}
+  try { db.exec("ALTER TABLE outcomes ADD COLUMN rating INTEGER"); } catch(e) {}
+  try { db.exec("ALTER TABLE outcomes ADD COLUMN responseTimeDays INTEGER"); } catch(e) {}
+  try { db.exec("ALTER TABLE outcomes ADD COLUMN proposalAccepted INTEGER"); } catch(e) {}
+  try { db.exec("ALTER TABLE outcomes ADD COLUMN conversationAccepted INTEGER"); } catch(e) {}
+  try { db.exec("ALTER TABLE outcomes ADD COLUMN realizedRate INTEGER"); } catch(e) {}
+  try { db.exec("ALTER TABLE outcomes ADD COLUMN realizedTimeline TEXT"); } catch(e) {}
+  try { db.exec("ALTER TABLE outcomes ADD COLUMN failureReason TEXT"); } catch(e) {}
+  try { db.exec("ALTER TABLE outcomes ADD COLUMN metadata TEXT"); } catch(e) {}
+
 }

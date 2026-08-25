@@ -16,3 +16,4 @@ export * from './ai/ClientIntelligenceEngine';
 
 export * from './ai/ConversationIntelligenceEngine';
 export * from './ai/ConversationValidator';
+export * from './ai/AdaptiveLearningEngine';
