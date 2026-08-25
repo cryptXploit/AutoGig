@@ -103,28 +103,47 @@ async function processEvent(
     }
     
 
-    const propText = await propGen.generate(opp as any, deepResult as any, evidenceList as any, profile as any, deepResult.recommendedAction as 'RECOMMEND' | 'COUNTER');
-    const proposalId = `prop-${oppId}-1`;
-    
-    // --- G4.2 Application Intelligence ---
-    const appIntelEngine = new ApplicationIntelligenceEngine(ai);
-    const appIntelResult = await appIntelEngine.generate({
-      opportunity: opp as any,
-      profile: profile as any,
-      preferences: pref as any,
-      evidence: evidenceList as any,
-      evaluation: deepResult as any
-    });
+    // --- G4.4 Application Intelligence BEFORE Proposal ---
+      const appIntelEngine = new ApplicationIntelligenceEngine(ai);
+      
+      const ciRepo = new SQLiteClientIntelligenceRepository(db);
+      const clientResult = await ciRepo.getByOpportunityId(oppId);
 
-    const appRepo = new SQLiteApplicationRepository(db);
-    appRepo.save({
-      id: `app-${oppId}-1`,
-      opportunityId: oppId,
-      proposalId: proposalId,
-      ...appIntelResult,
-      createdAt: new Date()
-    });
-    // ------------------------------------
+      const appIntelResult = await appIntelEngine.generate(
+        {
+          opportunity: opp as any,
+          profile: profile as any,
+          preferences: pref as any,
+          evidence: evidenceList as any,
+          evaluation: deepResult as any
+        },
+        clientResult
+      );
+
+      const appRepo = new SQLiteApplicationRepository(db);
+      const proposalId = `prop-${oppId}-1`;
+      
+      appRepo.save({
+        id: `app-${oppId}-1`,
+        opportunityId: oppId,
+        proposalId: undefined, // Will be linked later if needed
+        ...appIntelResult,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      // Pass Application Intelligence Alignment Context into Proposal Generation
+      const propText = await propGen.generate(
+        opp as any, 
+        deepResult as any, 
+        evidenceList as any, 
+        profile as any, 
+        deepResult.recommendedAction as 'RECOMMEND' | 'COUNTER',
+        undefined,
+        undefined,
+        appIntelResult
+      );
+      // ------------------------------------
 
     await proposalRepo.saveProposal({
 
@@ -236,7 +255,7 @@ async function processEvent(
           console.log(`[Worker] Client Intelligence blocked ${oppId}`);
           db.prepare(`UPDATE opportunities SET status = ? WHERE id = ?`).run('REJECTED', oppId);
           
-          const rejectionRepo = new (require('@autogig/db').SQLiteRejectionRepository)(db);
+          const rejectionRepo = new (require('@autogig/db').SQLiteDecisionRepository)(db);
           await rejectionRepo.save({
             id: require('crypto').randomUUID(),
             opportunityId: oppId,
