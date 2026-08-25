@@ -123,14 +123,7 @@ async function processEvent(
       const appRepo = new SQLiteApplicationRepository(db);
       const proposalId = `prop-${oppId}-1`;
       
-      appRepo.save({
-        id: `app-${oppId}-1`,
-        opportunityId: oppId,
-        proposalId: undefined, // Will be linked later if needed
-        ...appIntelResult,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
+      
 
       // Pass Application Intelligence Alignment Context into Proposal Generation
       const propText = await propGen.generate(
@@ -151,9 +144,18 @@ async function processEvent(
        opportunityId: oppId,
        text: propText,
        status: 'DRAFT',
-       version: 1,
-       runId: event.eventId
-    });
+         version: 1,
+         runId: event.eventId
+      });
+
+      appRepo.save({
+        id: `app-${oppId}-1`,
+        opportunityId: oppId,
+        proposalId: proposalId,
+        ...appIntelResult,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
     
     db.exec('BEGIN IMMEDIATE');
     try {
@@ -255,14 +257,13 @@ async function processEvent(
           console.log(`[Worker] Client Intelligence blocked ${oppId}`);
           db.prepare(`UPDATE opportunities SET status = ? WHERE id = ?`).run('REJECTED', oppId);
           
-          const rejectionRepo = new (require('@autogig/db').SQLiteDecisionRepository)(db);
-          await rejectionRepo.save({
-            id: require('crypto').randomUUID(),
-            opportunityId: oppId,
-            reason: 'Client blocked by intelligence rules.',
-            details: clientResult.reasons.join(', '),
-            createdAt: new Date()
-          });
+          db.prepare(`INSERT INTO decisions (id, opportunityId, reason, details, createdAt) VALUES (?, ?, ?, ?, ?)`).run(
+            require('crypto').randomUUID(),
+            oppId,
+            'Client blocked by intelligence rules.',
+            clientResult.reasons.join(', '),
+            new Date().toISOString()
+          );
           bus.acknowledge(event.eventId);
           db.exec('COMMIT');
           return;
