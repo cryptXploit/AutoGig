@@ -1,7 +1,7 @@
 ﻿"use client";
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle, AlertTriangle, XOctagon, Loader2, DollarSign, Target, Shield, Clock, Activity, FileText, CheckSquare, Zap, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertTriangle, XOctagon, Loader2, DollarSign, Target, Shield, Clock, Activity, FileText, CheckSquare, Zap, AlertCircle, MessageSquare } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 
 export default function OpportunityDetail({ params }: { params: { id: string } }) {
@@ -196,6 +196,66 @@ export default function OpportunityDetail({ params }: { params: { id: string } }
           )}
 
           ﻿          {/* G4.2 Application Intelligence Console */}
+          {/* G4.5 Conversation Intelligence Console */}
+          {data.conversations && data.conversations.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+              <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 border-b border-emerald-800 flex justify-between items-center text-white">
+                <h3 className="font-bold flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5"/>
+                  Conversation Intelligence
+                </h3>
+              </div>
+              
+              <div className="p-6">
+                <div className="space-y-4">
+                  {data.conversations.map((msg: any) => (
+                    <div key={msg.id} className={`p-4 rounded-xl border ${msg.sender === 'CLIENT' ? 'bg-slate-50 border-slate-200 ml-0 mr-12' : 'bg-emerald-50 border-emerald-200 ml-12 mr-0'}`}>
+                       <div className="flex justify-between items-center mb-2">
+                         <span className="font-bold text-sm text-slate-700">{msg.sender}</span>
+                         <span className="text-xs text-slate-500">{new Date(msg.createdAt).toLocaleString()}</span>
+                       </div>
+                       <p className="text-slate-800 whitespace-pre-wrap">{msg.text}</p>
+                       
+                       {msg.intelligence && (
+                         <div className="mt-4 p-4 bg-white rounded border border-slate-200 text-sm">
+                            <h4 className="font-bold text-slate-800 mb-2 border-b pb-1">AI Analysis</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                               <div>
+                                 <span className="text-slate-500 text-xs">STAGE</span>
+                                 <p className="font-medium text-slate-800">{msg.intelligence.conversationStage}</p>
+                               </div>
+                               <div>
+                                 <span className="text-slate-500 text-xs">INTENT</span>
+                                 <p className="font-medium text-slate-800">{msg.intelligence.clientIntent}</p>
+                               </div>
+                               <div>
+                                 <span className="text-slate-500 text-xs">ACTION</span>
+                                 <p className="font-medium text-blue-700">{msg.intelligence.recommendedAction}</p>
+                               </div>
+                               <div>
+                                 <span className="text-slate-500 text-xs">VALIDATION</span>
+                                 <p className={`font-medium ${msg.validationResult?.status === 'PASS' ? 'text-green-600' : 'text-red-600'}`}>
+                                   {msg.validationResult?.status || 'PENDING'}
+                                 </p>
+                               </div>
+                            </div>
+                            
+                            {msg.status === 'PENDING_APPROVAL' && (
+                              <div className="mt-4 flex gap-3">
+                                 <button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">Approve & Send</button>
+                                 <button className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-2 px-4 rounded-lg transition-colors">Edit</button>
+                                 <button className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-4 rounded-lg transition-colors">Reject</button>
+                              </div>
+                            )}
+                         </div>
+                       )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {data.applicationIntelligence && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
               <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 border-b border-blue-800 flex justify-between items-center text-white">

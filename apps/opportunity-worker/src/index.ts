@@ -329,6 +329,43 @@ async function processEvent(
       db.exec('ROLLBACK');
       throw err;
     }
+  } else if (event.eventType === 'OPPORTUNITY_MESSAGE_RECEIVED') {
+    const LocalDemoPlatformAdapter = require('@autogig/engine').LocalDemoPlatformAdapter;
+    const ai = getAIProvider();
+    const convEngine = new (require('@autogig/engine').ConversationIntelligenceEngine)(ai);
+    const convRepo = new (require('@autogig/db').SQLiteConversationRepository)(db);
+    
+    console.log(`[Worker] Processing incoming message for ${oppId}...`);
+    const adapter = new LocalDemoPlatformAdapter({} as any);
+
+    let messages = convRepo.findByOpportunityId(oppId);
+    if (!messages || messages.length === 0) {
+      if (adapter.syncConversation) {
+         messages = await adapter.syncConversation(oppId);
+         for (const m of messages) convRepo.save(m);
+      }
+    }
+
+    if (messages.length > 0) {
+      const { intelligence, validationResult } = await convEngine.generate(opp as any, profile as any, pref as any, messages);
+      
+      const newDraftId = `msg-${oppId}-${Date.now()}`;
+      const finalStatus = validationResult.status === 'PASS' ? 'PENDING_APPROVAL' : 'GENERATED'; // Failed validation stays GENERATED or FAILED
+      
+      convRepo.save({
+        id: newDraftId,
+        opportunityId: oppId,
+        sender: 'AGENT',
+        text: intelligence.suggestedReply || '',
+        status: finalStatus as any,
+        intelligence,
+        validationResult,
+        createdAt: new Date()
+      });
+      console.log(`[Worker] Generated conversation draft for ${oppId} with status ${finalStatus}`);
+    }
+
+    bus.acknowledge(event.eventId);
   } else {
     bus.acknowledge(event.eventId);
   }
