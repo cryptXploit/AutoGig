@@ -1,4 +1,4 @@
-import { ClientIntelligenceEngine } from '@autogig/engine';
+import { ClientIntelligenceEngine, LocalDemoPlatformAdapter } from '@autogig/engine';
 import { SQLiteClientIntelligenceRepository } from '@autogig/db';
 import path from 'path';
 import crypto from 'crypto';
@@ -218,10 +218,16 @@ async function processEvent(
         const ai = getAIProvider();
         const clientEngine = new ClientIntelligenceEngine(ai);
         const clientRepo = new SQLiteClientIntelligenceRepository(db);
+        
+        // 1. REAL LocalDemoPlatformAdapter wiring
+        const adapter = new LocalDemoPlatformAdapter({} as any);
+        const clientId = (opp as any).client?.id || 'unknown-client';
+        const clientCtx = await adapter.getClientContext(clientId);
+        
         const clientResult = await clientEngine.generate({
           opportunityId: opp.id,
           opportunity: opp as any,
-          client: (opp as any).client || {},
+          client: { ...((opp as any).client || {}), ...clientCtx },
           evidence: evidenceList
         });
         await clientRepo.save(clientResult);
