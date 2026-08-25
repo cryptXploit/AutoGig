@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Activity, ShieldCheck, XCircle, Search, Clock, FileText, Database, Server, RefreshCw } from 'lucide-react';
+import {  ArrowRight, Activity, ShieldCheck, XCircle, Search, Clock, FileText, Database, Server, RefreshCw , Target } from 'lucide-react';
 
 export default function Home() {
   const [stats, setStats] = useState<any>(null);
   const [opps, setOpps] = useState<any[]>([]);
+  const [radarOpps, setRadarOpps] = useState<any[]>([]);
   const [health, setHealth] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -17,11 +18,13 @@ export default function Home() {
     Promise.all([
       fetch(`${baseUrl}/api/dashboard/stats`).then(res => res.json()),
       fetch(`${baseUrl}/api/opportunities`).then(res => res.json()),
-      fetch(`${baseUrl}/api/health`).then(res => res.json()).catch(() => ({ success: false, data: { api: 'DOWN', database: 'DOWN' } }))
+      fetch(`${baseUrl}/api/health`).then(res => res.json()).catch(() => ({ success: false, data: { api: 'DOWN', database: 'DOWN' } })),
+      fetch(`${baseUrl}/api/strategy/opportunities`).then(res => res.json()).catch(() => ([]))
     ])
-    .then(([statsRes, oppsRes, healthRes]) => {
+    .then(([statsRes, oppsRes, healthRes, stratRes]) => {
       if (statsRes.success) setStats(statsRes.data);
       if (oppsRes.success) setOpps(oppsRes.data.slice(0, 10));
+      if (stratRes && stratRes.length) setRadarOpps(stratRes.slice(0, 5));
       if (healthRes.data) setHealth(healthRes.data);
       setLastUpdated(new Date());
       setLoading(false);
@@ -111,6 +114,66 @@ export default function Home() {
             <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wider">Needs Approval</h3>
           </div>
           <p className="text-3xl font-black mt-1 text-blue-600">{stats?.awaitingApproval || 0}</p>
+        </div>
+      </div>
+
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div className="lg:col-span-3">
+          <div className="bg-slate-900 rounded-2xl shadow-lg border border-slate-700 overflow-hidden text-white">
+            <div className="border-b border-slate-700 p-6 bg-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-3">
+                <Target className="w-6 h-6 text-blue-400" />
+                <div>
+                  <h2 className="text-xl font-bold">STRATEGIC OPPORTUNITY RADAR</h2>
+                  <p className="text-slate-400 text-sm mt-1">AI-assisted priority mapping based on expected value, freshness, and policy rules.</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="divide-y divide-slate-700/50 p-6 space-y-4">
+              {radarOpps.length === 0 ? (
+                 <div className="text-slate-400 text-center py-8">No strategies generated yet.</div>
+              ) : (
+                radarOpps.map((strat: any, idx: number) => (
+                  <div key={strat.opportunityId} className="flex flex-col md:flex-row md:items-start gap-4 pt-4 first:pt-0">
+                    <div className="flex-shrink-0 w-16 text-center">
+                       <div className="text-2xl font-black text-slate-300">#{idx + 1}</div>
+                    </div>
+                    
+                    <div className="flex-grow space-y-3">
+                      <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
+                        <Link href={`/opportunity/${strat.opportunityId}`}>
+                          <h3 className="font-bold text-lg text-blue-300 hover:underline">{strat.opportunityTitle}</h3>
+                        </Link>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xl font-black text-white">{strat.priorityScore}<span className="text-slate-500 text-sm">/100</span></span>
+                          <span className="px-2 py-1 text-xs font-bold rounded-sm bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                            {strat.priority.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-3 py-1 text-xs font-black rounded uppercase ${strat.strategy === 'APPLY_NOW' ? 'bg-green-500 text-white' : strat.strategy === 'SKIP' || strat.strategy === 'BLOCK' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>
+                          {strat.strategy.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-sm font-medium text-slate-400">&rarr; {strat.recommendedNextAction}</span>
+                      </div>
+                      
+                      <div className="bg-slate-800/80 p-3 rounded border border-slate-700/50">
+                        <div className="text-xs font-bold text-slate-500 mb-1">WHY NOW</div>
+                        <ul className="list-disc pl-4 text-sm text-slate-300 space-y-1">
+                          {strat.reasons.map((r: string, i: number) => <li key={i}>{r}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

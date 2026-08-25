@@ -359,4 +359,28 @@ export function initializeSchema(db: DatabaseSync): void {
     );
   `);
 
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS opportunity_strategy (
+      id TEXT PRIMARY KEY,
+      opportunityId TEXT UNIQUE NOT NULL,
+      strategy TEXT NOT NULL,
+      priority TEXT NOT NULL,
+      priorityScore INTEGER NOT NULL,
+      urgency TEXT NOT NULL,
+      timingScore INTEGER NOT NULL,
+      freshnessScore INTEGER NOT NULL,
+      expectedValueScore INTEGER NOT NULL,
+      competitionRiskScore INTEGER NOT NULL,
+      historicalSuccessScore INTEGER NOT NULL,
+      applicationReadinessScore INTEGER NOT NULL,
+      policyReadinessScore INTEGER NOT NULL,
+      reasons TEXT NOT NULL,
+      risks TEXT NOT NULL,
+      confidence INTEGER NOT NULL,
+      generatedAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+  `);
+
 }

@@ -1,4 +1,4 @@
-import { DecisionPlan, LifecycleState, DecisionPlanHistory, ExplainabilityReport, PolicyDecision, ActionUsage, ActionType } from '@autogig/core';
+import { DecisionPlan, LifecycleState, DecisionPlanHistory, ExplainabilityReport, PolicyDecision, ActionUsage, ActionType, OpportunityStrategy, OpportunityUrgency, OpportunityPriority, StrategyType } from '@autogig/core';
 import { EvidenceRepository, Evidence, Profile, Preference } from '@autogig/core';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -615,5 +615,103 @@ export class SQLiteActionUsageRepository {
   getUsageCount(userId: string, platform: string, actionType: ActionType, windowStart: Date): number {
     const row = this.db.prepare('SELECT count FROM action_usage WHERE userId = ? AND platform = ? AND actionType = ? AND windowStart = ?').get(userId, platform, actionType, windowStart.toISOString()) as any;
     return row ? row.count : 0;
+  }
+}
+
+
+export class SQLiteOpportunityStrategyRepository {
+  constructor(private db: DatabaseSync) {}
+
+  save(strategy: OpportunityStrategy): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO opportunity_strategy (
+        id, opportunityId, strategy, priority, priorityScore, urgency, timingScore, freshnessScore, expectedValueScore, competitionRiskScore, historicalSuccessScore, applicationReadinessScore, policyReadinessScore, reasons, risks, confidence, generatedAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(opportunityId) DO UPDATE SET
+        strategy = excluded.strategy,
+        priority = excluded.priority,
+        priorityScore = excluded.priorityScore,
+        urgency = excluded.urgency,
+        timingScore = excluded.timingScore,
+        freshnessScore = excluded.freshnessScore,
+        expectedValueScore = excluded.expectedValueScore,
+        competitionRiskScore = excluded.competitionRiskScore,
+        historicalSuccessScore = excluded.historicalSuccessScore,
+        applicationReadinessScore = excluded.applicationReadinessScore,
+        policyReadinessScore = excluded.policyReadinessScore,
+        reasons = excluded.reasons,
+        risks = excluded.risks,
+        confidence = excluded.confidence,
+        updatedAt = excluded.updatedAt
+    `);
+    stmt.run(
+      `strat-${strategy.opportunityId}`,
+      strategy.opportunityId,
+      strategy.strategy,
+      strategy.priority,
+      strategy.priorityScore,
+      strategy.urgency,
+      strategy.timingScore,
+      strategy.freshnessScore,
+      strategy.expectedValueScore,
+      strategy.competitionRiskScore,
+      strategy.historicalSuccessScore,
+      strategy.applicationReadinessScore,
+      strategy.policyReadinessScore,
+      JSON.stringify(strategy.reasons),
+      JSON.stringify(strategy.risks),
+      strategy.confidence,
+      strategy.generatedAt.toISOString(),
+      new Date().toISOString()
+    );
+  }
+
+  findByOpportunityId(opportunityId: string): OpportunityStrategy | null {
+    const row = this.db.prepare('SELECT * FROM opportunity_strategy WHERE opportunityId = ?').get(opportunityId) as any;
+    if (!row) return null;
+    return {
+      opportunityId: row.opportunityId,
+      strategy: row.strategy as StrategyType,
+      priority: row.priority as OpportunityPriority,
+      priorityScore: row.priorityScore,
+      urgency: row.urgency as OpportunityUrgency,
+      timingScore: row.timingScore,
+      freshnessScore: row.freshnessScore,
+      expectedValueScore: row.expectedValueScore,
+      competitionRiskScore: row.competitionRiskScore,
+      historicalSuccessScore: row.historicalSuccessScore,
+      applicationReadinessScore: row.applicationReadinessScore,
+      policyReadinessScore: row.policyReadinessScore,
+      clientResponsivenessScore: 50,
+      reasons: JSON.parse(row.reasons),
+      risks: JSON.parse(row.risks),
+      confidence: row.confidence,
+      generatedAt: new Date(row.generatedAt),
+      recommendedNextAction: 'N/A'
+    };
+  }
+  
+  findAll(): OpportunityStrategy[] {
+    const rows = this.db.prepare('SELECT * FROM opportunity_strategy ORDER BY priorityScore DESC').all() as any[];
+    return rows.map(row => ({
+      opportunityId: row.opportunityId,
+      strategy: row.strategy as StrategyType,
+      priority: row.priority as OpportunityPriority,
+      priorityScore: row.priorityScore,
+      urgency: row.urgency as OpportunityUrgency,
+      timingScore: row.timingScore,
+      freshnessScore: row.freshnessScore,
+      expectedValueScore: row.expectedValueScore,
+      competitionRiskScore: row.competitionRiskScore,
+      historicalSuccessScore: row.historicalSuccessScore,
+      applicationReadinessScore: row.applicationReadinessScore,
+      policyReadinessScore: row.policyReadinessScore,
+      clientResponsivenessScore: 50,
+      reasons: JSON.parse(row.reasons),
+      risks: JSON.parse(row.risks),
+      confidence: row.confidence,
+      generatedAt: new Date(row.generatedAt),
+      recommendedNextAction: 'N/A'
+    }));
   }
 }

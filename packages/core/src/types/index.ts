@@ -701,3 +701,52 @@ export interface ActionUsage {
   windowEnd: Date;
   lastExecutedAt: Date;
 }
+
+
+export enum OpportunityUrgency {
+  VERY_LOW = 'VERY_LOW',
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL'
+}
+
+export enum OpportunityPriority {
+  BACKLOG = 'BACKLOG',
+  NORMAL = 'NORMAL',
+  PRIORITY = 'PRIORITY',
+  HIGH_PRIORITY = 'HIGH_PRIORITY',
+  IMMEDIATE = 'IMMEDIATE'
+}
+
+export enum StrategyType {
+  APPLY_NOW = 'APPLY_NOW',
+  PREPARE_AND_APPLY = 'PREPARE_AND_APPLY',
+  WAIT_FOR_MORE_INFORMATION = 'WAIT_FOR_MORE_INFORMATION',
+  ASK_CLIENT_FIRST = 'ASK_CLIENT_FIRST',
+  NEGOTIATE_FIRST = 'NEGOTIATE_FIRST',
+  SKIP = 'SKIP',
+  WATCH = 'WATCH'
+}
+
+export interface OpportunityStrategy {
+  opportunityId: string;
+  urgency: OpportunityUrgency;
+  priority: OpportunityPriority;
+  priorityScore: number;
+  strategy: StrategyType;
+  timingScore: number;
+  freshnessScore: number;
+  clientResponsivenessScore: number;
+  competitionRiskScore: number;
+  expectedValueScore: number;
+  historicalSuccessScore: number;
+  applicationReadinessScore: number;
+  policyReadinessScore: number;
+  confidence: number;
+  reasons: string[];
+  risks: string[];
+  recommendedNextAction: string;
+  expiresAt?: Date;
+  generatedAt: Date;
+}

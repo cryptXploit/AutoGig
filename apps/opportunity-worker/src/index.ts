@@ -47,7 +47,7 @@ async function updateDecisionPlan(db: any, oppId: string, triggerEvent: string =
     }
 
     
-    const { OpportunityLifecycleEngine, DecisionExplainabilityEngine, ActionPolicyEngine, LocalDemoPlatformPolicy } = require('@autogig/engine');
+    const { OpportunityLifecycleEngine, DecisionExplainabilityEngine, ActionPolicyEngine, LocalDemoPlatformPolicy, OpportunityStrategyEngine } = require('@autogig/engine');
 const { ActionType } = require('@autogig/core');
     const lifecycleRepo = new (require('@autogig/db').SQLiteLifecycleRepository)(db);
     const historyRepo = new (require('@autogig/db').SQLiteDecisionHistoryRepository)(db);
@@ -150,6 +150,7 @@ const { ActionType } = require('@autogig/core');
        startOfDay.setHours(0,0,0,0);
        const usage = usageRepo.getUsageCount('u1', opp.source, targetAction, startOfDay);
 
+       
        const policyEngine = new ActionPolicyEngine();
        const platformPolicy = new LocalDemoPlatformPolicy();
        platformPolicy.platform = opp.source;
@@ -157,6 +158,14 @@ const { ActionType } = require('@autogig/core');
        const policyDecision = policyEngine.evaluateAction(actionReq, userPolicy, platformPolicy, plan, report, usage);
        policyRepo.save(policyDecision);
        console.log(`[PolicyEngine] ${oppId}: Action ${targetAction} evaluated as ${policyDecision.disposition}`);
+       
+       // STRATEGY ENGINE
+       const stratRepo = new (require('@autogig/db').SQLiteOpportunityStrategyRepository)(db);
+       const stratEngine = new OpportunityStrategyEngine();
+       const strategyResult = stratEngine.evaluate(opp, evaluation, report, policyDecision);
+       stratRepo.save(strategyResult);
+       console.log(`[StrategyEngine] ${oppId}: ${strategyResult.strategy} (Priority: ${strategyResult.priorityScore})`);
+
 
 
     } else {

@@ -115,10 +115,15 @@ app.get('/api/opportunities/:id', async (req, res) => {
       const dpRepo = new (require('@autogig/db').SQLiteDecisionPlanRepository)(db);
       const decisionPlan = dpRepo.findByOpportunityId(opp.id);
 
+      
       let policyDecision = null;
       if (decisionPlan && decisionPlan.finalDecision === 'APPLY_NOW') {
          policyDecision = policyRepo.getLatestByOpportunityAndAction(opp.id, 'SEND_PROPOSAL');
       }
+      
+      const stratRepo = new (require('@autogig/db').SQLiteOpportunityStrategyRepository)(db);
+      const strategy = stratRepo.findByOpportunityId(opp.id);
+
 
 
     res.json({ 
@@ -138,6 +143,7 @@ app.get('/api/opportunities/:id', async (req, res) => {
         decisionHistory,
         decisionExplainability,
         policyDecision,
+        strategy,
         conversations
       }
     });

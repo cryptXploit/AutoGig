@@ -25,3 +25,5 @@ export * from './explainability/DecisionExplainabilityEngine';
 
 export * from './policy/ActionPolicyEngine';
 export * from './policy/PolicyGuard';
+
+export * from './strategy/OpportunityStrategyEngine';
