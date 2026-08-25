@@ -22,3 +22,6 @@ export * from './decision/DecisionFusionEngine';
 export * from './lifecycle/OpportunityLifecycleEngine';
 
 export * from './explainability/DecisionExplainabilityEngine';
+
+export * from './policy/ActionPolicyEngine';
+export * from './policy/PolicyGuard';

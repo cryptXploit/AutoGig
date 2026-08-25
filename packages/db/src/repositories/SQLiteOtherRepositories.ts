@@ -1,4 +1,4 @@
-import { DecisionPlan, LifecycleState, DecisionPlanHistory, ExplainabilityReport } from '@autogig/core';
+import { DecisionPlan, LifecycleState, DecisionPlanHistory, ExplainabilityReport, PolicyDecision, ActionUsage, ActionType } from '@autogig/core';
 import { EvidenceRepository, Evidence, Profile, Preference } from '@autogig/core';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -544,5 +544,76 @@ export class SQLiteDecisionExplainabilityRepository {
     const row = stmt.get(opportunityId) as any;
     if (!row) return null;
     return JSON.parse(row.reportJson);
+  }
+}
+
+
+export class SQLitePolicyDecisionRepository {
+  constructor(private db: DatabaseSync) {}
+
+  save(decision: PolicyDecision): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO policy_decisions (
+        id, opportunityId, actionType, platform, disposition, reasons, violatedRules, policyVersion, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      decision.id,
+      decision.opportunityId,
+      decision.actionType,
+      decision.platform,
+      decision.disposition,
+      JSON.stringify(decision.reasons),
+      JSON.stringify(decision.violatedRules),
+      decision.policyVersion,
+      decision.evaluatedAt.toISOString()
+    );
+  }
+
+  getLatestByOpportunityAndAction(opportunityId: string, actionType: string): PolicyDecision | null {
+    const row = this.db.prepare('SELECT * FROM policy_decisions WHERE opportunityId = ? AND actionType = ? ORDER BY createdAt DESC LIMIT 1').get(opportunityId, actionType) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      opportunityId: row.opportunityId,
+      actionType: row.actionType as ActionType,
+      platform: row.platform,
+      disposition: row.disposition as any,
+      reasons: JSON.parse(row.reasons),
+      violatedRules: JSON.parse(row.violatedRules),
+      requiredApprovals: [],
+      confidence: 100,
+      evaluatedAt: new Date(row.createdAt),
+      policyVersion: row.policyVersion
+    };
+  }
+}
+
+export class SQLiteActionUsageRepository {
+  constructor(private db: DatabaseSync) {}
+
+  incrementUsage(userId: string, platform: string, actionType: ActionType, windowStart: Date, windowEnd: Date): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO action_usage (
+        id, userId, platform, actionType, count, windowStart, windowEnd, lastExecutedAt
+      ) VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+      ON CONFLICT(userId, platform, actionType, windowStart) DO UPDATE SET
+        count = count + 1,
+        lastExecutedAt = excluded.lastExecutedAt
+    `);
+    stmt.run(
+      `usage-${userId}-${actionType}-${Date.now()}`,
+      userId,
+      platform,
+      actionType,
+      windowStart.toISOString(),
+      windowEnd.toISOString(),
+      new Date().toISOString()
+    );
+  }
+
+  getUsageCount(userId: string, platform: string, actionType: ActionType, windowStart: Date): number {
+    const row = this.db.prepare('SELECT count FROM action_usage WHERE userId = ? AND platform = ? AND actionType = ? AND windowStart = ?').get(userId, platform, actionType, windowStart.toISOString()) as any;
+    return row ? row.count : 0;
   }
 }

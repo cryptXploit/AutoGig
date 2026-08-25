@@ -590,3 +590,114 @@ export interface ExplainabilityReport {
   humanReviewReason?: string;
   generatedAt: Date;
 }
+
+
+export enum ActionType {
+  DISCOVER_OPPORTUNITY = 'DISCOVER_OPPORTUNITY',
+  VIEW_OPPORTUNITY = 'VIEW_OPPORTUNITY',
+  RANK_OPPORTUNITY = 'RANK_OPPORTUNITY',
+  TAILOR_RESUME = 'TAILOR_RESUME',
+  GENERATE_PROPOSAL = 'GENERATE_PROPOSAL',
+  SEND_PROPOSAL = 'SEND_PROPOSAL',
+  GENERATE_REPLY = 'GENERATE_REPLY',
+  SEND_REPLY = 'SEND_REPLY',
+  NEGOTIATE_RATE = 'NEGOTIATE_RATE',
+  NEGOTIATE_SCOPE = 'NEGOTIATE_SCOPE',
+  REQUEST_CLARIFICATION = 'REQUEST_CLARIFICATION',
+  SCHEDULE_CALL = 'SCHEDULE_CALL',
+  ACCEPT_CONTRACT = 'ACCEPT_CONTRACT',
+  DECLINE_OPPORTUNITY = 'DECLINE_OPPORTUNITY',
+  RECORD_OUTCOME = 'RECORD_OUTCOME',
+  UPDATE_PROFILE = 'UPDATE_PROFILE',
+  UPDATE_GIG = 'UPDATE_GIG',
+  CREATE_PROJECT_ASSET = 'CREATE_PROJECT_ASSET'
+}
+
+export enum ActionDisposition {
+  AUTO_EXECUTE = 'AUTO_EXECUTE',
+  AUTO_DRAFT_ONLY = 'AUTO_DRAFT_ONLY',
+  REQUIRE_HUMAN_APPROVAL = 'REQUIRE_HUMAN_APPROVAL',
+  BLOCK_ACTION = 'BLOCK_ACTION'
+}
+
+export enum AutonomyLevel {
+  MANUAL = 'MANUAL',
+  ASSISTED = 'ASSISTED',
+  SUPERVISED = 'SUPERVISED',
+  HIGH_AUTONOMY = 'HIGH_AUTONOMY'
+}
+
+export interface UserPolicy {
+  minimumRate: number;
+  targetRate: number;
+  maximumNegotiationDiscount: number;
+  maximumNegotiationRounds: number;
+  blockedClients: string[];
+  blockedKeywords: string[];
+  allowedPlatforms: string[];
+  allowedActionTypes: ActionType[];
+  requireApprovalForMessaging: boolean;
+  requireApprovalForProposalSubmission: boolean;
+  requireApprovalForNegotiation: boolean;
+  maxDailyApplications: number;
+  maxDailyMessages: number;
+  maxActiveNegotiations: number;
+  minimumConfidenceForAutoDraft: number;
+  minimumConfidenceForAutoExecute: number;
+  autoSendEnabled: boolean;
+  autoNegotiateEnabled: boolean;
+  autoProposalEnabled: boolean;
+  workingHours?: string;
+  timezone?: string;
+  escalationRules?: string[];
+  autonomyLevel: AutonomyLevel;
+}
+
+export interface PlatformPolicy {
+  platform: string;
+  allowedActions: ActionType[];
+  requiresHumanApproval(action: ActionType): boolean;
+  isRateAllowed(rate: number, context: unknown): boolean;
+  isMessageAllowed(text: string, context: unknown): boolean;
+  isProposalSubmissionAllowed(context: unknown): boolean;
+  getPolicyVersion(): string;
+}
+
+export interface ActionRequest {
+  opportunityId: string;
+  actionType: ActionType;
+  platform: string;
+  proposedText?: string;
+  proposedRate?: number;
+  proposedTimeline?: string;
+  proposedScope?: string;
+  targetClient?: string;
+  metadata?: any;
+}
+
+export interface PolicyDecision {
+  id: string;
+  opportunityId: string;
+  actionType: ActionType;
+  platform: string;
+  disposition: ActionDisposition;
+  reasons: string[];
+  violatedRules: string[];
+  requiredApprovals: string[];
+  allowedParameters?: any;
+  blockedParameters?: any;
+  confidence: number;
+  evaluatedAt: Date;
+  policyVersion: string;
+}
+
+export interface ActionUsage {
+  id: string;
+  userId: string;
+  platform: string;
+  actionType: ActionType;
+  count: number;
+  windowStart: Date;
+  windowEnd: Date;
+  lastExecutedAt: Date;
+}

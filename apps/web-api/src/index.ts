@@ -101,14 +101,25 @@ app.get('/api/opportunities/:id', async (req, res) => {
       const lifecycleRepo = new (require('@autogig/db').SQLiteLifecycleRepository)(db);
       const historyRepo = new (require('@autogig/db').SQLiteDecisionHistoryRepository)(db);
       
+      
       const explainRepo = new (require('@autogig/db').SQLiteDecisionExplainabilityRepository)(db);
       const decisionExplainability = explainRepo.findByOpportunityId(opp.id);
+      
+      const policyRepo = new (require('@autogig/db').SQLitePolicyDecisionRepository)(db);
+      
+
 
       const lifecycleState = lifecycleRepo.findByOpportunityId(opp.id);
       const decisionHistory = historyRepo.findByOpportunityId(opp.id);
 
       const dpRepo = new (require('@autogig/db').SQLiteDecisionPlanRepository)(db);
       const decisionPlan = dpRepo.findByOpportunityId(opp.id);
+
+      let policyDecision = null;
+      if (decisionPlan && decisionPlan.finalDecision === 'APPLY_NOW') {
+         policyDecision = policyRepo.getLatestByOpportunityAndAction(opp.id, 'SEND_PROPOSAL');
+      }
+
 
     res.json({ 
       success: true, 
@@ -126,6 +137,7 @@ app.get('/api/opportunities/:id', async (req, res) => {
         lifecycleState,
         decisionHistory,
         decisionExplainability,
+        policyDecision,
         conversations
       }
     });

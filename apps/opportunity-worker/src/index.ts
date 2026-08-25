@@ -47,7 +47,8 @@ async function updateDecisionPlan(db: any, oppId: string, triggerEvent: string =
     }
 
     
-    const { OpportunityLifecycleEngine, DecisionExplainabilityEngine } = require('@autogig/engine');
+    const { OpportunityLifecycleEngine, DecisionExplainabilityEngine, ActionPolicyEngine, LocalDemoPlatformPolicy } = require('@autogig/engine');
+const { ActionType } = require('@autogig/core');
     const lifecycleRepo = new (require('@autogig/db').SQLiteLifecycleRepository)(db);
     const historyRepo = new (require('@autogig/db').SQLiteDecisionHistoryRepository)(db);
 
@@ -116,8 +117,47 @@ async function updateDecisionPlan(db: any, oppId: string, triggerEvent: string =
          []
        );
        
+       
        explainRepo.save(report);
        console.log(`[ExplainabilityEngine] ${oppId}: Report generated (Coverage ${Math.round(report.evidenceCoverage)}%)`);
+
+       // Evaluate Policy
+       const policyRepo = new (require('@autogig/db').SQLitePolicyDecisionRepository)(db);
+       const usageRepo = new (require('@autogig/db').SQLiteActionUsageRepository)(db);
+       
+       let targetAction = ActionType.DISCOVER_OPPORTUNITY;
+       if (plan.finalDecision === 'APPLY_NOW') targetAction = ActionType.SEND_PROPOSAL;
+       else if (plan.finalDecision === 'BLOCK') targetAction = ActionType.DECLINE_OPPORTUNITY;
+       
+       // Get user policy (mocking for test/local demo as we lack a full UserPolicy table)
+       const userPolicy = {
+         minimumRate: 50,
+         targetRate: 100,
+         blockedClients: ['Bad Client Inc'],
+         maxDailyApplications: 10,
+         autonomyLevel: 'SUPERVISED'
+       };
+
+       const actionReq = {
+         opportunityId: oppId,
+         actionType: targetAction,
+         platform: opp.source,
+         proposedRate: plan.confidence > 80 ? 100 : 40, // Demo mock for testing rate limits
+         targetClient: opp.description.includes('Bad Client Inc') ? 'Bad Client Inc' : 'Good Client'
+       };
+       
+       const startOfDay = new Date();
+       startOfDay.setHours(0,0,0,0);
+       const usage = usageRepo.getUsageCount('u1', opp.source, targetAction, startOfDay);
+
+       const policyEngine = new ActionPolicyEngine();
+       const platformPolicy = new LocalDemoPlatformPolicy();
+       platformPolicy.platform = opp.source;
+
+       const policyDecision = policyEngine.evaluateAction(actionReq, userPolicy, platformPolicy, plan, report, usage);
+       policyRepo.save(policyDecision);
+       console.log(`[PolicyEngine] ${oppId}: Action ${targetAction} evaluated as ${policyDecision.disposition}`);
+
 
     } else {
        console.log(`[LifecycleEngine] ${oppId}: Decision STABLE_REVIEW.`);

@@ -330,4 +330,33 @@ export function initializeSchema(db: DatabaseSync): void {
     );
   `);
 
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS policy_decisions (
+      id TEXT PRIMARY KEY,
+      opportunityId TEXT NOT NULL,
+      actionType TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      disposition TEXT NOT NULL,
+      reasons TEXT NOT NULL,
+      violatedRules TEXT NOT NULL,
+      policyVersion TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS action_usage (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      actionType TEXT NOT NULL,
+      count INTEGER NOT NULL,
+      windowStart TEXT NOT NULL,
+      windowEnd TEXT NOT NULL,
+      lastExecutedAt TEXT NOT NULL,
+      UNIQUE(userId, platform, actionType, windowStart)
+    );
+  `);
+
 }
