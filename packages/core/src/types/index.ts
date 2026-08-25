@@ -628,6 +628,7 @@ export enum AutonomyLevel {
 }
 
 export interface UserPolicy {
+  id?: string;
   minimumRate: number;
   targetRate: number;
   maximumNegotiationDiscount: number;
@@ -635,7 +636,7 @@ export interface UserPolicy {
   blockedClients: string[];
   blockedKeywords: string[];
   allowedPlatforms: string[];
-  allowedActionTypes: ActionType[];
+  allowedActionTypes: string[];
   requireApprovalForMessaging: boolean;
   requireApprovalForProposalSubmission: boolean;
   requireApprovalForNegotiation: boolean;
@@ -647,10 +648,9 @@ export interface UserPolicy {
   autoSendEnabled: boolean;
   autoNegotiateEnabled: boolean;
   autoProposalEnabled: boolean;
-  workingHours?: string;
-  timezone?: string;
-  escalationRules?: string[];
-  autonomyLevel: AutonomyLevel;
+  workingHours: string;
+  timezone: string;
+  autonomyLevel: string;
 }
 
 export interface PlatformPolicy {
@@ -748,5 +748,88 @@ export interface OpportunityStrategy {
   risks: string[];
   recommendedNextAction: string;
   expiresAt?: Date;
+  generatedAt: Date;
+}
+
+
+export interface UserIntelligenceProfile {
+  id: string;
+  identity: {
+    name: string;
+    headline: string;
+    location: string;
+    timezone: string;
+  };
+  professional: {
+    skills: string[];
+    experience: string[];
+    projects: string[];
+    certifications: string[];
+    education: string[];
+    portfolioLinks: string[];
+    githubLinks: string[];
+    domainExperience: string[];
+  };
+  commercial: {
+    targetRate: number;
+    minimumRate: number;
+    preferredRate: number;
+    preferredProjectSize: string;
+    preferredTimeline: string;
+  };
+  availability: {
+    availableHoursPerWeek: number;
+    availableFrom: string;
+    workingHours: string;
+    timezone: string;
+  };
+  communication: {
+    preferredTone: string;
+    language: string;
+    responseStyle: string;
+    negotiationStyle: string;
+  };
+  restrictions: {
+    forbiddenClaims: string[];
+    forbiddenSkills: string[];
+    forbiddenIndustries: string[];
+    forbiddenClients: string[];
+    blockedKeywords: string[];
+  };
+  platformPreferences: {
+    allowedPlatforms: string[];
+  };
+  autonomy: {
+    autonomyLevel: string;
+    autoProposalEnabled: boolean;
+    autoMessagingEnabled: boolean;
+    autoNegotiationEnabled: boolean;
+    autoSubmissionEnabled: boolean;
+  };
+  updatedAt: Date;
+}
+
+export interface UserEvidenceRecord {
+  id: string;
+  userId: string;
+  category: string;
+  claim: string;
+  value: string;
+  sourceType: string;
+  sourceReference: string;
+  verified: boolean;
+  confidence: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ExecutionReadiness {
+  opportunityId: string;
+  readinessScore: number;
+  state: 'READY_TO_DRAFT' | 'READY_FOR_REVIEW' | 'READY_FOR_HUMAN_APPROVAL' | 'BLOCKED';
+  missingRequirements: string[];
+  blockingReasons: string[];
+  nextAction: string;
+  confidence: number;
   generatedAt: Date;
 }

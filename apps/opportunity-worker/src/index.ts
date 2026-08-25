@@ -47,7 +47,7 @@ async function updateDecisionPlan(db: any, oppId: string, triggerEvent: string =
     }
 
     
-    const { OpportunityLifecycleEngine, DecisionExplainabilityEngine, ActionPolicyEngine, LocalDemoPlatformPolicy, OpportunityStrategyEngine } = require('@autogig/engine');
+    const { OpportunityLifecycleEngine, DecisionExplainabilityEngine, ActionPolicyEngine, LocalDemoPlatformPolicy, OpportunityStrategyEngine, UserContextValidator, UserIntelligenceContextLoader, ExecutionReadinessEngine } = require('@autogig/engine');
 const { ActionType } = require('@autogig/core');
     const lifecycleRepo = new (require('@autogig/db').SQLiteLifecycleRepository)(db);
     const historyRepo = new (require('@autogig/db').SQLiteDecisionHistoryRepository)(db);
@@ -129,14 +129,15 @@ const { ActionType } = require('@autogig/core');
        if (plan.finalDecision === 'APPLY_NOW') targetAction = ActionType.SEND_PROPOSAL;
        else if (plan.finalDecision === 'BLOCK') targetAction = ActionType.DECLINE_OPPORTUNITY;
        
-       // Get user policy (mocking for test/local demo as we lack a full UserPolicy table)
-       const userPolicy = {
-         minimumRate: 50,
-         targetRate: 100,
-         blockedClients: ['Bad Client Inc'],
-         maxDailyApplications: 10,
-         autonomyLevel: 'SUPERVISED'
-       };
+       
+       // CONTEXT LOADER (G4.12)
+       const profileRepo = new (require('@autogig/db').SQLiteUserIntelligenceProfileRepository)(db);
+       const upolicyRepo = new (require('@autogig/db').SQLiteUserPolicyRepository)(db);
+       const uevRepo = new (require('@autogig/db').SQLiteUserEvidenceRepository)(db);
+       
+       const contextLoader = new UserIntelligenceContextLoader(profileRepo, upolicyRepo, uevRepo, new UserContextValidator());
+       const context = contextLoader.load('u1'); // Canonical Demo User
+       const userPolicy = context.policy;
 
        const actionReq = {
          opportunityId: oppId,
@@ -165,6 +166,14 @@ const { ActionType } = require('@autogig/core');
        const strategyResult = stratEngine.evaluate(opp, evaluation, report, policyDecision);
        stratRepo.save(strategyResult);
        console.log(`[StrategyEngine] ${oppId}: ${strategyResult.strategy} (Priority: ${strategyResult.priorityScore})`);
+
+
+       // EXECUTION READINESS ENGINE (G4.12)
+       const erRepo = new (require('@autogig/db').SQLiteExecutionReadinessRepository)(db);
+       const erEngine = new ExecutionReadinessEngine();
+       const readiness = erEngine.evaluate(strategyResult, policyDecision, context);
+       erRepo.save(readiness);
+       console.log(`[ExecutionReadiness] ${oppId}: ${readiness.state} (Score: ${readiness.readinessScore})`);
 
 
 

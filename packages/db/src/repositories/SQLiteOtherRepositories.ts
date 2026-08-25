@@ -1,4 +1,4 @@
-import { DecisionPlan, LifecycleState, DecisionPlanHistory, ExplainabilityReport, PolicyDecision, ActionUsage, ActionType, OpportunityStrategy, OpportunityUrgency, OpportunityPriority, StrategyType } from '@autogig/core';
+import { DecisionPlan, LifecycleState, DecisionPlanHistory, ExplainabilityReport, PolicyDecision, ActionUsage, ActionType, OpportunityStrategy, OpportunityUrgency, OpportunityPriority, StrategyType , UserIntelligenceProfile, UserEvidenceRecord, ExecutionReadiness, UserPolicy } from '@autogig/core';
 import { EvidenceRepository, Evidence, Profile, Preference } from '@autogig/core';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -713,5 +713,62 @@ export class SQLiteOpportunityStrategyRepository {
       generatedAt: new Date(row.generatedAt),
       recommendedNextAction: 'N/A'
     }));
+  }
+}
+
+
+export class SQLiteUserIntelligenceProfileRepository {
+  constructor(private db: DatabaseSync) {}
+  save(profile: UserIntelligenceProfile): void {
+    const stmt = this.db.prepare(`INSERT INTO user_intelligence_profile (id, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`);
+    stmt.run(profile.id, JSON.stringify(profile), new Date().toISOString());
+  }
+  findById(id: string): UserIntelligenceProfile | null {
+    const row = this.db.prepare('SELECT * FROM user_intelligence_profile WHERE id = ?').get(id) as any;
+    if (!row) return null;
+    return JSON.parse(row.data);
+  }
+}
+
+export class SQLiteUserPolicyRepository {
+  constructor(private db: DatabaseSync) {}
+  save(userId: string, policy: UserPolicy): void {
+    const stmt = this.db.prepare(`INSERT INTO user_policy (id, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`);
+    stmt.run(userId, JSON.stringify(policy), new Date().toISOString());
+  }
+  findById(userId: string): UserPolicy | null {
+    const row = this.db.prepare('SELECT * FROM user_policy WHERE id = ?').get(userId) as any;
+    if (!row) return null;
+    return JSON.parse(row.data);
+  }
+}
+
+export class SQLiteUserEvidenceRepository {
+  constructor(private db: DatabaseSync) {}
+  save(evidence: UserEvidenceRecord): void {
+    const stmt = this.db.prepare(`INSERT INTO user_evidence (id, userId, category, claim, value, sourceType, sourceReference, verified, confidence, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET category = excluded.category, claim = excluded.claim, value = excluded.value, verified = excluded.verified, confidence = excluded.confidence, updatedAt = excluded.updatedAt`);
+    stmt.run(evidence.id, evidence.userId, evidence.category, evidence.claim, evidence.value, evidence.sourceType, evidence.sourceReference, evidence.verified ? 1 : 0, evidence.confidence, evidence.createdAt.toISOString(), new Date().toISOString());
+  }
+  findByUserId(userId: string): UserEvidenceRecord[] {
+    const rows = this.db.prepare('SELECT * FROM user_evidence WHERE userId = ?').all(userId) as any[];
+    return rows.map(r => ({
+      ...r,
+      verified: r.verified === 1,
+      createdAt: new Date(r.createdAt),
+      updatedAt: new Date(r.updatedAt)
+    }));
+  }
+}
+
+export class SQLiteExecutionReadinessRepository {
+  constructor(private db: DatabaseSync) {}
+  save(readiness: ExecutionReadiness): void {
+    const stmt = this.db.prepare(`INSERT INTO execution_readiness (opportunityId, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(opportunityId) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`);
+    stmt.run(readiness.opportunityId, JSON.stringify(readiness), new Date().toISOString());
+  }
+  findByOpportunityId(opportunityId: string): ExecutionReadiness | null {
+    const row = this.db.prepare('SELECT * FROM execution_readiness WHERE opportunityId = ?').get(opportunityId) as any;
+    if (!row) return null;
+    return JSON.parse(row.data);
   }
 }

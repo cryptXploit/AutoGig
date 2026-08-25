@@ -383,4 +383,36 @@ export function initializeSchema(db: DatabaseSync): void {
     );
   `);
 
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_intelligence_profile (
+      id TEXT PRIMARY KEY,
+      data TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS user_policy (
+      id TEXT PRIMARY KEY,
+      data TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS user_evidence (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      category TEXT NOT NULL,
+      claim TEXT NOT NULL,
+      value TEXT NOT NULL,
+      sourceType TEXT NOT NULL,
+      sourceReference TEXT NOT NULL,
+      verified INTEGER NOT NULL,
+      confidence INTEGER NOT NULL,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS execution_readiness (
+      opportunityId TEXT PRIMARY KEY,
+      data TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+  `);
+
 }

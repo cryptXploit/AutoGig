@@ -27,3 +27,8 @@ export * from './policy/ActionPolicyEngine';
 export * from './policy/PolicyGuard';
 
 export * from './strategy/OpportunityStrategyEngine';
+
+export * from './profile/UserContextValidator';
+export * from './profile/UserEvidenceResolver';
+export * from './profile/UserIntelligenceContextLoader';
+export * from './readiness/ExecutionReadinessEngine';
