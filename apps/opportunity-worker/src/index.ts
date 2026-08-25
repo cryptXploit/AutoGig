@@ -1,3 +1,18 @@
+
+// Phase G4.6: Historical Intelligence Runner
+async function applyHistoricalIntelligence(opp: any, evalRecord: any, db: any) {
+  try {
+    const { AdaptiveLearningEngine } = require('@autogig/engine');
+    const outcomeRepo = new (require('@autogig/db').SQLiteOutcomeRepository)(db);
+    const engine = new AdaptiveLearningEngine();
+    const historicalOutcomes = outcomeRepo.findAllWithContext();
+    return engine.evaluateHistory(opp, evalRecord, historicalOutcomes);
+  } catch (err) {
+    console.error('[Worker] AdaptiveLearningEngine failed', err);
+    return evalRecord;
+  }
+}
+
 import { ClientIntelligenceEngine, LocalDemoPlatformAdapter } from '@autogig/engine';
 import { SQLiteClientIntelligenceRepository } from '@autogig/db';
 import path from 'path';
@@ -27,7 +42,7 @@ async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function processEvent(
+export async function processEvent(
   db: DatabaseSync, 
   repo: SQLiteOpportunityRepository, 
   runs: SQLiteRunRepository, 
@@ -71,8 +86,25 @@ async function processEvent(
     
     const deepResult = await reasoner.evaluate(opp as any, evaluation as any, evidenceList as any, profile as any, pref as any);
     
-    db.prepare(`UPDATE evaluations SET clientRiskAssessment = ?, deepReasonStatus = 'COMPLETED' WHERE opportunityId = ?`)
-      .run(deepResult.clientRiskAssessment || 'UNKNOWN', oppId);
+    
+      const evalRepo = new SQLiteEvaluationRepository(db);
+      let evalRecord = await evalRepo.findByOpportunityId(oppId);
+      if (evalRecord) {
+         evalRecord.scoreBreakdown.clientRiskAssessment = deepResult.clientRiskAssessment || 'UNKNOWN';
+         evalRecord.deepReasonStatus = 'COMPLETED';
+         evalRecord = await applyHistoricalIntelligence(opp, evalRecord, db);
+console.log('EVAL_RECORD AFTER APPLY:', evalRecord);
+await evalRepo.saveEvaluation(evalRecord);
+      } else {
+         db.prepare(`UPDATE evaluations SET clientRiskAssessment = ?, deepReasonStatus = 'COMPLETED' WHERE opportunityId = ?`).run(deepResult.clientRiskAssessment || 'UNKNOWN', oppId);
+      }
+      
+      // Update state logic if historical intelligence changed it (though it shouldn't override to approval, it might just remain)
+      // Actually we must respect evalRecord.evaluationRoute if it became REJECT!
+      if (evalRecord && evalRecord.evaluationRoute === 'REJECT') {
+         deepResult.recommendedAction = 'SKIP';
+      }
+
       
     // State Persistence helper
     const advanceState = (newState: string) => {
@@ -90,8 +122,7 @@ async function processEvent(
            console.log(`${oppId} skipped by AI.`);
            advanceState('REJECTED');
            bus.acknowledge(event.eventId);
-           db.exec('COMMIT');
-           return;
+          return;
         }
         
         advanceState('SHORTLISTED');
@@ -257,15 +288,8 @@ async function processEvent(
           console.log(`[Worker] Client Intelligence blocked ${oppId}`);
           db.prepare(`UPDATE opportunities SET status = ? WHERE id = ?`).run('REJECTED', oppId);
           
-          db.prepare(`INSERT INTO decisions (id, opportunityId, reason, details, createdAt) VALUES (?, ?, ?, ?, ?)`).run(
-            require('crypto').randomUUID(),
-            oppId,
-            'Client blocked by intelligence rules.',
-            clientResult.reasons.join(', '),
-            new Date().toISOString()
-          );
+          db.prepare(`INSERT INTO decisions (id, opportunityId, decision, reason, actor, createdAt) VALUES (?, ?, ?, ?, ?, ?)`).run(require('crypto').randomUUID(), oppId, 'BLOCK', 'Client blocked by intelligence rules: ' + clientResult.reasons.join(', '), 'opportunity-worker', new Date().toISOString());
           bus.acknowledge(event.eventId);
-          db.exec('COMMIT');
           return;
         }
 
@@ -300,16 +324,25 @@ async function processEvent(
       db.prepare(`INSERT INTO run_stages (runId, stage, status, latency) VALUES (?, ?, ?, ?)`).run(runId, 'PHASE_C_PIPELINE', 'SUCCESS', 250);
       
       if (breakdown) {
-         await evalRepo.saveEvaluation({
-            id: `eval-${oppId}`,
-            opportunityId: oppId,
-            evaluationRoute: route,
-            qualificationFlags: qualFlags,
-            priority: route === 'HIGH_PRIORITY_DEEP_REASON' ? 1 : 0,
-            deepReasonStatus: (route === 'DEEP_REASON_REQUIRED' || route === 'HIGH_PRIORITY_DEEP_REASON' || route === 'COUNTER_CANDIDATE') ? 'PENDING' : 'NOT_REQUIRED',
-            scoreBreakdown: breakdown,
-            createdAt: new Date()
-         });
+         
+          let evalRecord: any = {
+              id: `eval-${oppId}`,
+              opportunityId: oppId,
+              evaluationRoute: route,
+              qualificationFlags: qualFlags,
+              priority: route === 'HIGH_PRIORITY_DEEP_REASON' ? 1 : 0,
+              deepReasonStatus: (route === 'DEEP_REASON_REQUIRED' || route === 'HIGH_PRIORITY_DEEP_REASON' || route === 'COUNTER_CANDIDATE') ? 'PENDING' : 'NOT_REQUIRED',
+              scoreBreakdown: breakdown,
+              createdAt: new Date()
+          };
+          
+          if (finalState === 'REJECTED') {
+             // If rejected here, it won't go to deep reasoning. Run historical learning now.
+             evalRecord = await applyHistoricalIntelligence(opp, evalRecord, db);
+          }
+          
+          await evalRepo.saveEvaluation(evalRecord);
+
       }
 
       if (finalState === 'EVALUATING' && (route === 'DEEP_REASON_REQUIRED' || route === 'HIGH_PRIORITY_DEEP_REASON' || route === 'COUNTER_CANDIDATE')) {

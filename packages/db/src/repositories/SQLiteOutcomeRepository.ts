@@ -49,6 +49,35 @@ export class SQLiteOutcomeRepository {
     );
   }
 
+  
+  findAllWithContext(): { outcome: OutcomeRecord, opportunity: any, originalEvaluation: any }[] {
+    const rows = this.db.prepare(`
+      SELECT o.*, opp.title, opp.normalizedSkills, opp.normalizedBudget, e.overall, e.route as evalRoute, e.clientRiskAssessment
+      FROM outcomes o
+      JOIN opportunities opp ON o.opportunityId = opp.id
+      JOIN evaluations e ON o.opportunityId = e.opportunityId
+      ORDER BY o.createdAt DESC
+      LIMIT 100
+    `).all() as any[];
+    
+    return rows.map(r => ({
+      outcome: this.mapRow(r),
+      opportunity: {
+        id: r.opportunityId,
+        title: r.title,
+        normalizedSkills: r.normalizedSkills ? JSON.parse(r.normalizedSkills) : [],
+        normalizedBudget: r.normalizedBudget
+      } as any,
+      originalEvaluation: {
+        evaluationRoute: r.evalRoute,
+        scoreBreakdown: {
+          overall: r.overall,
+          clientRiskAssessment: r.clientRiskAssessment
+        }
+      } as any
+    }));
+  }
+
   findByOpportunityId(opportunityId: string): OutcomeRecord | null {
     const row = this.db.prepare('SELECT * FROM outcomes WHERE opportunityId = ?').get(opportunityId) as any;
     if (!row) return null;

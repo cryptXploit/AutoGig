@@ -244,6 +244,10 @@ export function initializeSchema(db: DatabaseSync): void {
   try { db.exec("ALTER TABLE conversations ADD COLUMN intelligence TEXT"); } catch(e) {}
   try { db.exec("ALTER TABLE conversations ADD COLUMN validationResult TEXT"); } catch(e) {}
 
+  try { db.exec("ALTER TABLE evaluations ADD COLUMN finalScore REAL"); } catch(e) {}
+  try { db.exec("ALTER TABLE evaluations ADD COLUMN historicalIntelligence TEXT"); } catch(e) {}
+
+
   try { db.exec("ALTER TABLE outcomes ADD COLUMN clientFeedback TEXT"); } catch(e) {}
   try { db.exec("ALTER TABLE outcomes ADD COLUMN hired INTEGER"); } catch(e) {}
   try { db.exec("ALTER TABLE outcomes ADD COLUMN paymentSuccess INTEGER"); } catch(e) {}

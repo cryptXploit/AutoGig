@@ -192,8 +192,7 @@ export interface ScoreBreakdown {
   evidenceConfidence: number;
   economicSummary: EconomicAnalysis;
 
-  historicalIntelligence?: HistoricalIntelligence;
-  finalScore?: number;
+  
 }
 
 export interface EvaluationRecord {
@@ -204,6 +203,8 @@ export interface EvaluationRecord {
   priority: number;
   deepReasonStatus: 'PENDING' | 'COMPLETED' | 'NOT_REQUIRED';
   scoreBreakdown: ScoreBreakdown;
+  finalScore?: number;
+  historicalIntelligence?: HistoricalIntelligence;
   createdAt: Date;
 }
 

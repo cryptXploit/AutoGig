@@ -175,31 +175,74 @@ export class SQLiteEvidenceRepository {
 
 export class SQLiteEvaluationRepository {
   constructor(private db: DatabaseSync) {}
-  async saveEvaluation(record: any): Promise<void> {
+  
+    async findByOpportunityId(opportunityId: string): Promise<any> {
+      const row = this.db.prepare('SELECT * FROM evaluations WHERE opportunityId = ?').get(opportunityId) as any;
+      if (!row) return null;
+      return {
+        id: row.id,
+        opportunityId: row.opportunityId,
+        evaluationRoute: row.route,
+        qualificationFlags: row.qualificationFlags ? JSON.parse(row.qualificationFlags) : [],
+        priority: row.priority,
+        deepReasonStatus: row.deepReasonStatus,
+        finalScore: row.finalScore,
+        historicalIntelligence: row.historicalIntelligence ? JSON.parse(row.historicalIntelligence) : undefined,
+        scoreBreakdown: {
+          overall: row.overall,
+          technicalFit: row.technicalFit,
+          evidenceStrength: row.evidenceStrength,
+          budgetFit: row.budgetFit,
+          preferenceFit: row.preferenceFit,
+          scopeClarity: row.scopeClarity,
+          route: row.route,
+          clientRiskAssessment: row.clientRiskAssessment,
+          explanations: row.explanations ? JSON.parse(row.explanations) : []
+        },
+        createdAt: new Date(row.createdAt)
+      };
+    }
+
+    async saveEvaluation(record: any): Promise<void> {
     this.db.prepare(`
       INSERT INTO evaluations (
         id, opportunityId, overall, technicalFit, evidenceStrength, budgetFit, 
         preferenceFit, scopeClarity, route, qualificationFlags, priority, 
-        deepReasonStatus, explanations
+        deepReasonStatus, explanations, clientRiskAssessment, finalScore, historicalIntelligence
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         overall=excluded.overall,
-        route=excluded.route
+        technicalFit=excluded.technicalFit,
+        evidenceStrength=excluded.evidenceStrength,
+        budgetFit=excluded.budgetFit,
+        preferenceFit=excluded.preferenceFit,
+        scopeClarity=excluded.scopeClarity,
+        route=excluded.route,
+        qualificationFlags=excluded.qualificationFlags,
+        priority=excluded.priority,
+        deepReasonStatus=excluded.deepReasonStatus,
+        explanations=excluded.explanations,
+        clientRiskAssessment=excluded.clientRiskAssessment,
+        finalScore=excluded.finalScore,
+        historicalIntelligence=excluded.historicalIntelligence
     `).run(
-      record.id, 
-      record.opportunityId, 
-      record.scoreBreakdown.overall,
-      record.scoreBreakdown.technicalFit,
-      record.scoreBreakdown.evidenceStrength,
-      record.scoreBreakdown.budgetFit,
-      record.scoreBreakdown.preferenceFit,
-      record.scoreBreakdown.scopeClarity,
-      record.evaluationRoute, 
-      JSON.stringify(record.qualificationFlags),
-      record.priority,
-      record.deepReasonStatus,
-      JSON.stringify(record.scoreBreakdown.explanations || {})
+      record.id,
+      record.opportunityId,
+      record.scoreBreakdown?.overall ?? 0,
+      record.scoreBreakdown?.technicalFit ?? 0,
+      record.scoreBreakdown?.evidenceStrength ?? 0,
+      record.scoreBreakdown?.budgetFit ?? 0,
+      record.scoreBreakdown?.preferenceFit ?? 0,
+      record.scoreBreakdown?.scopeClarity ?? 0,
+      record.evaluationRoute,
+      JSON.stringify(record.qualificationFlags || []),
+      record.priority || 0,
+      record.deepReasonStatus || 'NOT_REQUIRED',
+      JSON.stringify(record.scoreBreakdown?.explanations || []),
+      record.scoreBreakdown?.clientRiskAssessment || null,
+      record.finalScore || null,
+      record.historicalIntelligence ? JSON.stringify(record.historicalIntelligence) : null
     );
   }
 }

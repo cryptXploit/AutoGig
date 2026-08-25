@@ -244,4 +244,62 @@ ${JSON.stringify(input.client || {}, null, 2)}
       createdAt: new Date()
     } as any;
   }
+
+  async generateConversationIntelligence(
+    opportunity: any,
+    profile: any,
+    preferences: any,
+    messages: any[]
+  ): Promise<any> {
+    const prompt = `
+You are the Conversation Intelligence Engine.
+Analyze the latest messages and provide strategic communication intelligence.
+
+RULES:
+1. Do not invent facts.
+2. Ground responses in the user's verified Profile and Preferences.
+3. Determine if human approval is required based on risk flags.
+
+OPPORTUNITY:
+${JSON.stringify(opportunity, null, 2)}
+
+PROFILE:
+${JSON.stringify(profile, null, 2)}
+
+MESSAGES:
+${JSON.stringify(messages, null, 2)}
+`;
+
+    const ConversationIntelligenceSchema = z.object({
+      conversationStage: z.enum(['NEW_LEAD', 'DISCOVERY', 'REQUIREMENTS_CLARIFICATION', 'BUDGET_DISCUSSION', 'TIMELINE_DISCUSSION', 'NEGOTIATION', 'DECISION_PENDING', 'WON', 'LOST', 'UNKNOWN']),
+      clientIntent: z.string(),
+      clientSentiment: z.string().optional(),
+      urgency: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+      scopeClarity: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+      budgetClarity: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+      timelineClarity: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+      trustSignal: z.number().min(0).max(100),
+      negotiationOpportunity: z.boolean(),
+      missingInformation: z.array(z.string()),
+      recommendedAction: z.enum(['NO_ACTION', 'ASK_CLARIFYING_QUESTIONS', 'SEND_REPLY', 'NEGOTIATE', 'REQUEST_BUDGET', 'REQUEST_TIMELINE', 'REQUEST_REQUIREMENTS', 'ESCALATE_TO_HUMAN', 'STOP_COMMUNICATION']),
+      recommendedQuestions: z.array(z.string()),
+      suggestedReply: z.string().optional(),
+      replyTone: z.string().optional(),
+      confidence: z.number().min(0).max(100),
+      riskFlags: z.array(z.string()),
+      evidenceIds: z.array(z.string()),
+      requiresHumanApproval: z.boolean()
+    });
+
+    const result = await ai.generate({
+      model: googleAI.model('gemini-1.5-flash'),
+      prompt: prompt,
+      output: { schema: ConversationIntelligenceSchema }
+    });
+
+    const data = result.output as any;
+    if (!data) throw new Error("Failed to generate conversation intelligence");
+    
+    return data;
+  }
 }
