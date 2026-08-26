@@ -48,7 +48,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
     };
     res.json({ success: true, data: stats });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? (err as Error).message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -63,7 +63,7 @@ app.get('/api/opportunities', async (req, res) => {
     opps.sort((a: CanonicalOpportunity, b: CanonicalOpportunity) => new Date(b.ingestionTimestamp).getTime() - new Date(a.ingestionTimestamp).getTime());
     res.json({ success: true, data: opps });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? (err as Error).message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -149,7 +149,7 @@ app.get('/api/opportunities/:id', async (req, res) => {
     });
 
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? (err as Error).message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -178,7 +178,7 @@ app.post('/api/opportunities/:id/outcome', async (req, res) => {
     outcomeRepo.save(outcome);
     res.json({ success: true, outcome });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? (err as Error).message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -225,7 +225,7 @@ app.post('/api/opportunities/:id/outcome', async (req, res) => {
 
     res.json({ success: true, data: { status: 'APPROVED' } });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? (err as Error).message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -272,7 +272,7 @@ app.post('/api/opportunities/:id/counter', async (req, res) => {
 
     res.json({ success: true, data: { status: 'COUNTERED' } });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? (err as Error).message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -321,7 +321,7 @@ app.post('/api/opportunities/:id/reject', async (req, res) => {
 
     res.json({ success: true, data: { status: 'REJECTED' } });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? (err as Error).message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -333,7 +333,7 @@ app.get('/api/profile', async (req, res) => {
     const profile = await profileRepo.getProfile('user-local');
     res.json({ success: true, data: profile });
   } catch(err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? (err as Error).message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -345,7 +345,7 @@ app.put('/api/profile', async (req, res) => {
     await profileRepo.saveProfile(profile);
     res.json({ success: true, data: profile });
   } catch(err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? (err as Error).message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -357,7 +357,7 @@ app.put('/api/preferences', async (req, res) => {
     await prefRepo.savePreference(pref);
     res.json({ success: true, data: pref });
   } catch(err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? (err as Error).message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -368,7 +368,7 @@ app.get('/api/preferences', async (req, res) => {
     const decisions = db.prepare('SELECT decision, reason, COUNT(*) as count FROM decisions WHERE decision = \'REJECT\' GROUP BY reason').all();
     res.json({ success: true, data: { preferences: pref, learned: decisions } });
   } catch(err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? (err as Error).message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -450,5 +450,72 @@ app.get('/api/evidence/:id', async (req, res) => {
     }
   });
 
-  app.listen(PORT, () => console.log(`Web API listening on port ${PORT}`));
+  
+app.get('/api/strategy/opportunities', async (req, res) => {
+  try {
+    
+    const repo = new (require('@autogig/db').SQLiteOpportunityStrategyRepository)(db);
+    // Note: The UI expects a ranked list of strategies. 
+    // In a real app we would join opportunities to strategies, but let's just return what we have in the repo.
+    // Wait, the repo might not have a find ranked method. 
+    // Let's just do a manual query.
+    const rows = db.prepare('SELECT * FROM opportunity_strategy').all();
+    const strategies = rows.map((r: any) => JSON.parse(r.data)).sort((a: any, b: any) => b.priorityScore - a.priorityScore);
+    res.json(strategies);
+  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+});
+
+app.get('/api/profile/intelligence', (req, res) => {
+  try {
+    
+    const repo = new (require('@autogig/db').SQLiteUserIntelligenceProfileRepository)(db);
+    const profile = repo.findById('u1');
+    res.json(profile || { id: 'u1', identity: { name: '', headline: '' }, professional: { skills: [] } });
+  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+});
+
+app.put('/api/profile/intelligence', (req, res) => {
+  try {
+    
+    const repo = new (require('@autogig/db').SQLiteUserIntelligenceProfileRepository)(db);
+    repo.save(req.body);
+    res.json({ success: true });
+  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+});
+
+app.get('/api/policy', (req, res) => {
+  try {
+    
+    const repo = new (require('@autogig/db').SQLiteUserPolicyRepository)(db);
+    const policy = repo.findById('u1');
+    res.json(policy || { id: 'u1', targetRate: 50, minimumRate: 20, maximumNegotiationDiscount: 10, maxDailyApplications: 10, autonomyLevel: 'MANUAL', autoSendEnabled: false, requireApprovalForProposalSubmission: true, blockedClients: [] });
+  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+});
+
+app.put('/api/policy', (req, res) => {
+  try {
+    
+    const repo = new (require('@autogig/db').SQLiteUserPolicyRepository)(db);
+    // Simple validation
+    const { UserContextValidator } = require('@autogig/engine');
+    const validator = new UserContextValidator();
+    const errors = validator.validate(req.body.profile || {}, req.body);
+    
+    if (errors.length > 0) return res.status(400).json({ error: 'Validation failed', details: errors });
+    
+    repo.save('u1', req.body);
+    res.json({ success: true });
+  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+});
+
+app.get('/api/execution-readiness/:opportunityId', (req, res) => {
+  try {
+    
+    const repo = new (require('@autogig/db').SQLiteExecutionReadinessRepository)(db);
+    res.json(repo.findByOpportunityId(req.params.opportunityId) || { error: 'Not found' });
+  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+});
+
+
+app.listen(PORT, () => console.log(`Web API listening on port ${PORT}`));
 

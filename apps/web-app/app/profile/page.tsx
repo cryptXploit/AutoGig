@@ -22,7 +22,7 @@ export default function CareerBrain() {
       if (!pol.error) setPolicy(pol);
       if (Array.isArray(evi)) setEvidence(evi);
       setLoading(false);
-    }).catch(console.error);
+    }).catch((err) => { console.error(err); setLoading(false); });
   }, []);
 
   const saveAll = async () => {
