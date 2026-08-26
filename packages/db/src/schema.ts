@@ -415,4 +415,50 @@ export function initializeSchema(db: DatabaseSync): void {
     );
   `);
 
+
+  // --- Phase G4.13: Action Execution Orchestrator ---
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS execution_requests (
+      id TEXT PRIMARY KEY,
+      opportunityId TEXT NOT NULL,
+      actionType TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      payload TEXT,
+      policyDecisionId TEXT,
+      executionReadinessId TEXT,
+      requestedBy TEXT,
+      status TEXT NOT NULL,
+      createdAt TEXT,
+      updatedAt TEXT
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS execution_results (
+      id TEXT PRIMARY KEY,
+      executionRequestId TEXT NOT NULL,
+      success INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      externalReference TEXT,
+      message TEXT,
+      failureReason TEXT,
+      metadata TEXT,
+      executedAt TEXT
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS execution_audit (
+      id TEXT PRIMARY KEY,
+      executionRequestId TEXT NOT NULL,
+      opportunityId TEXT NOT NULL,
+      previousStatus TEXT,
+      newStatus TEXT NOT NULL,
+      reason TEXT,
+      actor TEXT NOT NULL,
+      timestamp TEXT
+    )
+  `);
+
 }

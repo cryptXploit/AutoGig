@@ -32,3 +32,5 @@ export * from './profile/UserContextValidator';
 export * from './profile/UserEvidenceResolver';
 export * from './profile/UserIntelligenceContextLoader';
 export * from './readiness/ExecutionReadinessEngine';
+
+export * from './execution/ActionExecutionOrchestrator';

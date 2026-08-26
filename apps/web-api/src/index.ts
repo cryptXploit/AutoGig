@@ -517,5 +517,94 @@ app.get('/api/execution-readiness/:opportunityId', (req, res) => {
 });
 
 
+
+app.get('/api/executions/opportunity/:opportunityId', (req, res) => {
+  try {
+    const { SQLiteExecutionRequestRepository, SQLiteExecutionResultRepository, SQLiteExecutionAuditRepository } = require('@autogig/db');
+    const reqRepo = new SQLiteExecutionRequestRepository(db);
+    const resultRepo = new SQLiteExecutionResultRepository(db);
+    const auditRepo = new SQLiteExecutionAuditRepository(db);
+    
+    const request = reqRepo.getLatestByOpportunityId(req.params.opportunityId);
+    if (!request) return res.json({ error: 'No execution found' });
+    
+    const result = resultRepo.findByRequestId(request.id);
+    const audit = auditRepo.findByOpportunityId(req.params.opportunityId);
+    
+    res.json({ request, result, audit });
+  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+});
+
+app.post('/api/executions/:id/approve', (req, res) => {
+  try {
+    const { SQLiteExecutionRequestRepository, SQLiteExecutionAuditRepository } = require('@autogig/db');
+    const { ActionExecutionOrchestrator } = require('@autogig/engine');
+    
+    const reqRepo = new SQLiteExecutionRequestRepository(db);
+    const auditRepo = new SQLiteExecutionAuditRepository(db);
+    
+    const orchestrator = new ActionExecutionOrchestrator({
+      requestRepo: reqRepo,
+      auditRepo: auditRepo,
+      resultRepo: null, policyRepo: null, readinessRepo: null, platformAdapter: {} as any
+    });
+    
+    const request = reqRepo.findById(req.params.id);
+    if (!request) return res.status(404).json({ error: 'Not found' });
+    
+    orchestrator.approve(request);
+    res.json({ success: true, request });
+  } catch (err: any) { res.status(400).json({ error: (err as Error).message }); }
+});
+
+app.post('/api/executions/:id/reject', (req, res) => {
+  try {
+    const { SQLiteExecutionRequestRepository, SQLiteExecutionAuditRepository } = require('@autogig/db');
+    const { ActionExecutionOrchestrator } = require('@autogig/engine');
+    
+    const reqRepo = new SQLiteExecutionRequestRepository(db);
+    const auditRepo = new SQLiteExecutionAuditRepository(db);
+    
+    const orchestrator = new ActionExecutionOrchestrator({
+      requestRepo: reqRepo,
+      auditRepo: auditRepo,
+      resultRepo: null, policyRepo: null, readinessRepo: null, platformAdapter: {} as any
+    });
+    
+    const request = reqRepo.findById(req.params.id);
+    if (!request) return res.status(404).json({ error: 'Not found' });
+    
+    orchestrator.reject(request);
+    res.json({ success: true, request });
+  } catch (err: any) { res.status(400).json({ error: (err as Error).message }); }
+});
+
+app.post('/api/executions/:id/execute', async (req, res) => {
+  try {
+    const { SQLiteExecutionRequestRepository, SQLiteExecutionResultRepository, SQLiteExecutionAuditRepository, SQLitePolicyDecisionRepository, SQLiteExecutionReadinessRepository } = require('@autogig/db');
+    const { ActionExecutionOrchestrator, LocalDemoPlatformAdapter } = require('@autogig/engine');
+    
+    const reqRepo = new SQLiteExecutionRequestRepository(db);
+    const resultRepo = new SQLiteExecutionResultRepository(db);
+    const auditRepo = new SQLiteExecutionAuditRepository(db);
+    const policyRepo = new SQLitePolicyDecisionRepository(db);
+    const readinessRepo = new SQLiteExecutionReadinessRepository(db);
+    
+    const adapter = new LocalDemoPlatformAdapter({} as any);
+    
+    const orchestrator = new ActionExecutionOrchestrator({
+      requestRepo: reqRepo,
+      resultRepo, auditRepo, policyRepo, readinessRepo, platformAdapter: adapter
+    });
+    
+    const request = reqRepo.findById(req.params.id);
+    if (!request) return res.status(404).json({ error: 'Not found' });
+    
+    const result = await orchestrator.processRequest(request);
+    res.json({ success: true, result });
+  } catch (err: any) { res.status(400).json({ error: (err as Error).message }); }
+});
+
+
 app.listen(PORT, () => console.log(`Web API listening on port ${PORT}`));
 

@@ -13,6 +13,34 @@ export default function OpportunityDetail({ params }: { params: { id: string } }
 
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
+  const [executionData, setExecutionData] = useState<any>(null);
+  
+  const loadExecution = () => {
+    fetch(`${baseUrl}/api/executions/opportunity/${params.id}`)
+      .then(r => r.json())
+      .then(d => {
+         if (!d.error && d.request) setExecutionData(d);
+      }).catch(console.error);
+  };
+  
+  useEffect(() => {
+    loadExecution();
+  }, [params.id, baseUrl]);
+
+  const handleAction = async (action: string) => {
+    if (!executionData?.request?.id) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${baseUrl}/api/executions/${executionData.request.id}/${action}`, { method: 'POST' });
+      await res.json();
+      loadExecution();
+    } catch (e) {
+      console.error(e);
+    }
+    setActionLoading(false);
+  };
+
+
   useEffect(() => {
     fetch(`${baseUrl}/api/opportunities/${params.id}`)
       .then(res => res.json())
@@ -94,6 +122,63 @@ export default function OpportunityDetail({ params }: { params: { id: string } }
         <h1 className="text-3xl font-black text-slate-800 tracking-tight">Agent Decision Console</h1>
       </div>
       
+      
+
+      {/* G4.13 EXECUTION CONTROL PANEL */}
+      {executionData && executionData.request && (
+        <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl border border-slate-700">
+          <div className="flex justify-between items-center mb-6">
+             <h2 className="text-xl font-bold flex items-center gap-2"><Zap className="w-5 h-5 text-yellow-400"/> Execution Control (G4.13)</h2>
+             <div className="px-3 py-1 bg-slate-800 rounded-full text-xs font-bold font-mono text-slate-300">
+               STATUS: <span className={executionData.request.status === 'FAILED' ? 'text-red-400' : executionData.request.status === 'EXECUTED' ? 'text-green-400' : 'text-blue-400'}>{executionData.request.status}</span>
+             </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-slate-800 p-4 rounded-xl">
+               <div className="text-xs text-slate-400 font-bold mb-1">ACTION TYPE</div>
+               <div className="font-mono text-sm">{executionData.request.actionType}</div>
+            </div>
+            <div className="bg-slate-800 p-4 rounded-xl">
+               <div className="text-xs text-slate-400 font-bold mb-1">PLATFORM</div>
+               <div className="font-mono text-sm">{executionData.request.platform}</div>
+            </div>
+            {executionData.result && (
+              <div className="bg-slate-800 p-4 rounded-xl col-span-1 md:col-span-2">
+                 <div className="text-xs text-slate-400 font-bold mb-1">RESULT MESSAGE</div>
+                 <div className="font-mono text-sm">{executionData.result.message}</div>
+                 {executionData.result.externalReference && <div className="text-xs text-slate-500 mt-2">REF: {executionData.result.externalReference}</div>}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-slate-800 rounded-xl overflow-hidden mb-6">
+             <div className="bg-slate-700/50 px-4 py-2 text-xs font-bold text-slate-300">AUDIT LOG</div>
+             <div className="p-4 max-h-40 overflow-y-auto space-y-2">
+               {executionData.audit && executionData.audit.map((a: any, i: number) => (
+                  <div key={i} className="flex gap-4 text-sm font-mono items-start">
+                     <span className="text-slate-500 text-xs mt-0.5 whitespace-nowrap">{new Date(a.timestamp).toLocaleTimeString()}</span>
+                     <span className="text-slate-400 whitespace-nowrap w-24">-&gt; {a.newStatus}</span>
+                     <span className="text-slate-300">{a.reason}</span>
+                  </div>
+               ))}
+             </div>
+          </div>
+
+          <div className="flex gap-3">
+             {executionData.request.status === 'PENDING_APPROVAL' && (
+                <>
+                  <button onClick={() => handleAction('approve')} disabled={actionLoading} className="flex-1 py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold transition disabled:opacity-50">Approve</button>
+                  <button onClick={() => handleAction('reject')} disabled={actionLoading} className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition disabled:opacity-50">Reject</button>
+                </>
+             )}
+             {(executionData.request.status === 'READY_TO_EXECUTE' || executionData.request.status === 'APPROVED' || executionData.request.status === 'FAILED') && (
+                <button onClick={() => handleAction('execute')} disabled={actionLoading} className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"><Zap className="w-4 h-4"/> Execute Now</button>
+             )}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div>
           <div className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Target</div>

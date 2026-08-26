@@ -411,6 +411,7 @@ export interface PlatformAdapter {
   prepareReply(opportunityId: string, text: string): Promise<boolean>;
   getOutcome(opportunityId: string): Promise<OutcomeRecord | null>;
   syncConversation?(opportunityId: string): Promise<ConversationMessage[]>;
+  executeAction?(request: import('./index').ExecutionRequest): Promise<import('./index').ExecutionResult>;
 }
 
 export interface ApplicationIntelligenceInput {
@@ -832,4 +833,59 @@ export interface ExecutionReadiness {
   nextAction: string;
   confidence: number;
   generatedAt: Date;
+}
+
+
+export type ExecutionStatus = 
+  | 'DRAFT'
+  | 'VALIDATED'
+  | 'PENDING_APPROVAL'
+  | 'APPROVED'
+  | 'READY_TO_EXECUTE'
+  | 'EXECUTING'
+  | 'EXECUTED'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'BLOCKED';
+
+export interface ExecutionRequest {
+  id: string;
+  opportunityId: string;
+  actionType: ActionType;
+  platform: string;
+  payload: any;
+  policyDecisionId?: string;
+  executionReadinessId?: string;
+  requestedBy: string;
+  status: ExecutionStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ExecutionResult {
+  id: string;
+  executionRequestId: string;
+  status: ExecutionStatus;
+  success: boolean;
+  externalReference?: string;
+  message: string;
+  failureReason?: string;
+  metadata?: any;
+  executedAt?: Date;
+}
+
+export interface ExecutionAuditRecord {
+  id: string;
+  executionRequestId: string;
+  opportunityId: string;
+  actionType: ActionType;
+  policyDecisionId?: string;
+  readinessId?: string;
+  approvalRequired: boolean;
+  approvalGranted: boolean;
+  previousStatus: ExecutionStatus;
+  newStatus: ExecutionStatus;
+  reason: string;
+  actor: string;
+  timestamp: Date;
 }

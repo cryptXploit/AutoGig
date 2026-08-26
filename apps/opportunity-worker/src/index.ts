@@ -175,6 +175,60 @@ const { ActionType } = require('@autogig/core');
        erRepo.save(readiness);
        console.log(`[ExecutionReadiness] ${oppId}: ${readiness.state} (Score: ${readiness.readinessScore})`);
 
+       // ACTION EXECUTION ORCHESTRATOR (G4.13)
+       const { ActionExecutionOrchestrator, LocalDemoPlatformAdapter } = require('@autogig/engine');
+       const { SQLiteExecutionRequestRepository, SQLiteExecutionResultRepository, SQLiteExecutionAuditRepository } = require('@autogig/db');
+       
+       const execReqRepo = new SQLiteExecutionRequestRepository(db);
+       const execResRepo = new SQLiteExecutionResultRepository(db);
+       const execAuditRepo = new SQLiteExecutionAuditRepository(db);
+       const demoAdapter = new LocalDemoPlatformAdapter({} as any);
+
+       const orchestrator = new ActionExecutionOrchestrator({
+         requestRepo: execReqRepo,
+         resultRepo: execResRepo,
+         auditRepo: execAuditRepo,
+         policyRepo: policyRepo,
+         readinessRepo: erRepo,
+         platformAdapter: demoAdapter
+       });
+
+       // Only create an execution request if strategy indicates action and it hasn't been blocked
+       const actionStrategies = ['APPLY_NOW', 'NEGOTIATE_FIRST', 'ASK_CLIENT_FIRST', 'PREPARE_AND_APPLY'];
+       if (actionStrategies.includes(strategyResult.strategy) && readiness.state !== 'BLOCKED' && policyDecision.disposition !== 'BLOCK_ACTION') {
+          
+          let existingReq = execReqRepo.getLatestByOpportunityId(oppId);
+          if (!existingReq || existingReq.status === 'CANCELLED' || existingReq.status === 'FAILED') {
+              const reqId = 'exec-' + Math.random().toString(36).substring(2, 9);
+              
+              // We map strategy to an ActionType. 
+              let actionToTake = ActionType.SEND_PROPOSAL;
+              if (strategyResult.strategy === 'NEGOTIATE_FIRST') actionToTake = ActionType.NEGOTIATE_RATE;
+              if (strategyResult.strategy === 'ASK_CLIENT_FIRST') actionToTake = ActionType.REQUEST_CLARIFICATION;
+              
+              const newReq = {
+                id: reqId,
+                opportunityId: oppId,
+                actionType: actionToTake,
+                platform: 'local-demo',
+                payload: { strategy: strategyResult.strategy },
+                policyDecisionId: policyDecision.id,
+                executionReadinessId: readiness.opportunityId,
+                requestedBy: 'opportunity-worker',
+                status: 'DRAFT',
+                createdAt: new Date(),
+                updatedAt: new Date()
+              };
+              
+              execReqRepo.create(newReq);
+              
+              // Move to validated
+              const result = await orchestrator.processRequest(newReq);
+              console.log('[ActionExecution] ' + oppId + ': Request created and processed -> ' + result.status);
+          }
+       }
+
+
 
 
     } else {

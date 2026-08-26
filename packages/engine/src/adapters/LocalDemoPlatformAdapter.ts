@@ -44,4 +44,34 @@ export class LocalDemoPlatformAdapter implements PlatformAdapter {
   async getOutcome(opportunityId: string): Promise<OutcomeRecord | null> {
     return null; 
   }
+
+
+  async executeAction(request: import('@autogig/core').ExecutionRequest): Promise<import('@autogig/core').ExecutionResult> {
+    console.log('[DemoAdapter] Executing action: ' + request.actionType + ' for ' + request.opportunityId);
+    
+    // Simulate deterministic FAILED for unsupported types
+    const supported = ['SEND_PROPOSAL', 'SEND_REPLY', 'NEGOTIATE_RATE', 'REQUEST_CLARIFICATION', 'DECLINE_OPPORTUNITY'];
+    if (!supported.includes(request.actionType)) {
+      return {
+        id: 'res-' + request.id,
+        executionRequestId: request.id,
+        status: 'FAILED',
+        success: false,
+        message: 'Action ' + request.actionType + ' not supported by demo adapter.',
+        failureReason: 'UNSUPPORTED_ACTION'
+      };
+    }
+
+    // Simulate success
+    return {
+      id: 'res-' + request.id,
+      executionRequestId: request.id,
+      status: 'EXECUTED',
+      success: true,
+      message: 'Simulated execution success',
+      externalReference: 'DEMO-EXEC-' + request.id,
+      executedAt: new Date()
+    };
+  }
+
 }
