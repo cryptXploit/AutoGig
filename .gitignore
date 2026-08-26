@@ -19,7 +19,7 @@ ARCHITECTURE
 
 ARCHITECTURE
 docs
-tests
+# tests
 3rd_architecture.md
 fix-*.js
 fix_*.js
