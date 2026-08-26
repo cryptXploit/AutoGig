@@ -39,3 +39,4 @@ update-*.js
 !tests/*
 !apps/*
 !packages/*
+!data/*
