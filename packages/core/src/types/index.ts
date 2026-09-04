@@ -342,6 +342,39 @@ export interface ApplicationIntelligence {
   updatedAt: Date;
 }
 
+
+// Phase G4.15: Career Memory
+export type CareerMemoryCategory = 'SKILL' | 'OPPORTUNITY' | 'STRATEGY' | 'CLIENT' | 'RATE';
+export type MemoryConfidenceLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'ABSOLUTE';
+
+export interface MemoryExplanation {
+  evidenceCount: number;
+  positiveOutcomes: number;
+  negativeOutcomes: number;
+  neutralOutcomes: number;
+  recentRelevantCount: number;
+  confidenceScore: number;
+  reasoning: string;
+}
+
+export interface CareerMemoryRecord {
+  id: string;
+  category: CareerMemoryCategory;
+  key: string;            // e.g., "STRATEGY:NEGOTIATE_FIRST", "SKILL:react", "RATE_TIER:30-50"
+  value: string;          // A normalized pattern string or metric summary
+  successRate: number;    // 0.0 to 1.0
+  sampleSize: number;
+  confidenceLevel: MemoryConfidenceLevel;
+  confidenceScore: number; // 0.0 to 1.0 based on sample size + recency
+  explanation: MemoryExplanation;
+  sourceOutcomeIds: string[];
+  modelVersion: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastObservedAt: Date;
+  expiresAt?: Date;
+}
+
 export interface OutcomeRecord {
   id: string;
   opportunityId: string;

@@ -78,4 +78,26 @@ CREATE TABLE IF NOT EXISTS execution_requests (
     CREATE INDEX IF NOT EXISTS idx_agent_iterations_run_id ON agent_iterations (runId);
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS career_memory (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      successRate REAL NOT NULL,
+      sampleSize INTEGER NOT NULL,
+      confidenceLevel TEXT NOT NULL,
+      confidenceScore REAL NOT NULL,
+      explanation TEXT NOT NULL,
+      sourceOutcomeIds TEXT NOT NULL,
+      modelVersion TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      lastObservedAt TEXT NOT NULL,
+      expiresAt TEXT
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_career_memory_key ON career_memory(key);
+  `);
+
+
 }

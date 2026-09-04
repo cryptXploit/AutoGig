@@ -36,3 +36,5 @@ export * from './readiness/ExecutionReadinessEngine';
 export * from './execution/ActionExecutionOrchestrator';
 
 export * from './agent/AgentController';
+
+export * from './memory/CareerMemoryEngine';
