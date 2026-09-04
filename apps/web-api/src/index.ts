@@ -606,5 +606,94 @@ app.post('/api/executions/:id/execute', async (req, res) => {
 });
 
 
+
+app.get('/api/agent/runs/opportunity/:opportunityId', (req, res) => {
+  try {
+    const { SQLiteAgentRunRepository, SQLiteAgentIterationRepository } = require('@autogig/db');
+    const runRepo = new SQLiteAgentRunRepository(db);
+    const iterRepo = new SQLiteAgentIterationRepository(db);
+    
+    const run = runRepo.getLatestByOpportunityId(req.params.opportunityId);
+    if (!run) return res.json({ error: 'No run found' });
+    
+    const iterations = iterRepo.findByRunId(run.id);
+    res.json({ success: true, data: { run, iterations } });
+  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+});
+
+app.post('/api/agent/runs/:id/continue', async (req, res) => {
+  try {
+    // This is essentially "execute" if pending approval, but AgentController handles tick if we just call handleEvent
+    const { SQLiteAgentRunRepository, SQLiteAgentIterationRepository, SQLiteExecutionRequestRepository, SQLiteExecutionResultRepository, SQLiteExecutionAuditRepository, SQLitePolicyDecisionRepository, SQLiteExecutionReadinessRepository } = require('@autogig/db');
+    const { AgentController, ActionExecutionOrchestrator, LocalDemoPlatformAdapter, ActionPolicyEngine, OpportunityStrategyEngine, ExecutionReadinessEngine, UserIntelligenceContextLoader, UserContextValidator } = require('@autogig/engine');
+    
+    const runRepo = new SQLiteAgentRunRepository(db);
+    const iterRepo = new SQLiteAgentIterationRepository(db);
+    
+    const execReqRepo = new SQLiteExecutionRequestRepository(db);
+    const execResRepo = new SQLiteExecutionResultRepository(db);
+    const execAuditRepo = new SQLiteExecutionAuditRepository(db);
+    const demoAdapter = new LocalDemoPlatformAdapter({} as any);
+
+    const orchestrator = new ActionExecutionOrchestrator({
+      requestRepo: execReqRepo,
+      resultRepo: execResRepo,
+      auditRepo: execAuditRepo,
+      policyRepo: new SQLitePolicyDecisionRepository(db),
+      readinessRepo: new SQLiteExecutionReadinessRepository(db),
+      platformAdapter: demoAdapter
+    });
+
+    const agentController = new AgentController({
+      runRepo,
+      iterationRepo: iterRepo,
+      execReqRepo,
+      policyEngine: new ActionPolicyEngine(),
+      strategyEngine: new OpportunityStrategyEngine(),
+      readinessEngine: new ExecutionReadinessEngine(),
+      orchestrator,
+      oppRepo: new (require('@autogig/db').SQLiteOpportunityRepository)(db),
+      evalRepo: new (require('@autogig/db').SQLiteEvaluationRepository)(db),
+      explainRepo: new (require('@autogig/db').SQLiteDecisionExplainabilityRepository)(db),
+      userContextLoader: new UserIntelligenceContextLoader(
+         new (require('@autogig/db').SQLiteUserIntelligenceProfileRepository)(db),
+         new (require('@autogig/db').SQLiteUserPolicyRepository)(db),
+         new (require('@autogig/db').SQLiteUserEvidenceRepository)(db),
+         new UserContextValidator()
+      )
+    });
+    
+    const run = runRepo.findById(req.params.id);
+    if (!run) return res.status(404).json({ error: 'Run not found' });
+    
+    // Resume
+    run.status = 'RUNNING';
+    run.stopReason = undefined;
+    runRepo.save(run);
+    
+    const newRun = await agentController.tick(run);
+    res.json({ success: true, run: newRun });
+  } catch (err: any) { res.status(400).json({ error: (err as Error).message }); }
+});
+
+app.post('/api/agent/runs/:id/cancel', (req, res) => {
+  try {
+    const { SQLiteAgentRunRepository } = require('@autogig/db');
+    const runRepo = new SQLiteAgentRunRepository(db);
+    
+    const run = runRepo.findById(req.params.id);
+    if (!run) return res.status(404).json({ error: 'Run not found' });
+    
+    run.status = 'STOPPED';
+    run.stopReason = 'USER_CANCELLED';
+    run.updatedAt = new Date();
+    run.completedAt = new Date();
+    runRepo.save(run);
+    
+    res.json({ success: true, run });
+  } catch (err: any) { res.status(400).json({ error: (err as Error).message }); }
+});
+
+
 app.listen(PORT, () => console.log(`Web API listening on port ${PORT}`));
 

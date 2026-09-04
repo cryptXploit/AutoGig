@@ -15,6 +15,31 @@ export default function OpportunityDetail({ params }: { params: { id: string } }
 
   const [executionData, setExecutionData] = useState<any>(null);
   
+  
+  const [agentData, setAgentData] = useState<any>(null);
+  const loadAgent = () => {
+    fetch(`${baseUrl}/api/agent/runs/opportunity/${params.id}`)
+      .then(r => r.json())
+      .then(d => {
+         if (d.success) setAgentData(d.data);
+      }).catch(console.error);
+  };
+  
+  useEffect(() => {
+    loadAgent();
+  }, [params.id, baseUrl]);
+
+  const handleAgentAction = async (action: string, runId: string) => {
+    setActionLoading(true);
+    try {
+      await fetch(`${baseUrl}/api/agent/runs/${runId}/${action}`, { method: 'POST' });
+      loadAgent();
+    } catch (e) {
+      console.error(e);
+    }
+    setActionLoading(false);
+  };
+
   const loadExecution = () => {
     fetch(`${baseUrl}/api/executions/opportunity/${params.id}`)
       .then(r => r.json())
@@ -25,6 +50,7 @@ export default function OpportunityDetail({ params }: { params: { id: string } }
   
   useEffect(() => {
     loadExecution();
+      loadAgent();
   }, [params.id, baseUrl]);
 
   const handleAction = async (action: string) => {
@@ -34,6 +60,7 @@ export default function OpportunityDetail({ params }: { params: { id: string } }
       const res = await fetch(`${baseUrl}/api/executions/${executionData.request.id}/${action}`, { method: 'POST' });
       await res.json();
       loadExecution();
+      loadAgent();
     } catch (e) {
       console.error(e);
     }
@@ -123,6 +150,86 @@ export default function OpportunityDetail({ params }: { params: { id: string } }
       </div>
       
       
+
+      
+
+      {/* G4.14 AUTONOMOUS AGENT CONTROL PANEL */}
+      {agentData && agentData.run && (
+        <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl border border-indigo-500/50 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+          
+          <div className="flex justify-between items-center mb-6">
+             <h2 className="text-xl font-bold flex items-center gap-2"><Activity className="w-5 h-5 text-indigo-400"/> Autonomous Agent Control (G4.14)</h2>
+             <div className="flex gap-2 items-center">
+               <span className="text-xs text-slate-400 font-mono">ITERATION {agentData.run.iteration}/{agentData.run.maxIterations}</span>
+               <div className="px-3 py-1 bg-slate-800 rounded-full text-xs font-bold font-mono text-slate-300 border border-slate-700">
+                 STATUS: <span className={agentData.run.status === 'FAILED' ? 'text-red-400' : agentData.run.status === 'COMPLETED' ? 'text-green-400' : 'text-indigo-400'}>{agentData.run.status}</span>
+               </div>
+             </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
+               <div className="text-xs text-slate-400 font-bold mb-1">CURRENT GOAL</div>
+               <div className="font-mono text-sm text-slate-200">{agentData.run.goal}</div>
+            </div>
+            <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
+               <div className="text-xs text-slate-400 font-bold mb-1">STOP REASON</div>
+               <div className="font-mono text-sm text-slate-200">{agentData.run.stopReason || 'N/A'}</div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800/80 rounded-xl overflow-hidden mb-6 border border-slate-700/50">
+             <div className="bg-slate-800 px-4 py-2 text-xs font-bold text-slate-300 border-b border-slate-700/50">ITERATION HISTORY</div>
+             <div className="p-4 max-h-64 overflow-y-auto space-y-4">
+               {agentData.iterations && agentData.iterations.map((iter: any, i: number) => (
+                  <div key={i} className="border-l-2 border-indigo-500/30 pl-4 py-1">
+                     <div className="flex items-center gap-2 mb-2">
+                       <span className="text-indigo-400 font-bold text-xs">ITERATION {iter.iteration}</span>
+                       <span className="text-slate-500 text-xs font-mono">{new Date(iter.timestamp).toLocaleTimeString()}</span>
+                     </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                       <div>
+                         <div className="text-[10px] text-slate-500 font-bold">1. PLAN</div>
+                         <div className="text-xs font-mono text-slate-300">{iter.selectedAction?.actionType || 'NONE'}</div>
+                       </div>
+                       <div>
+                         <div className="text-[10px] text-slate-500 font-bold">2. POLICY</div>
+                         <div className="text-xs font-mono text-slate-300">{iter.policyDecision?.disposition || 'N/A'}</div>
+                       </div>
+                       <div>
+                         <div className="text-[10px] text-slate-500 font-bold">3. READINESS</div>
+                         <div className="text-xs font-mono text-slate-300">{iter.readinessDecision?.state || 'N/A'}</div>
+                       </div>
+                       <div>
+                         <div className="text-[10px] text-slate-500 font-bold">4. EXECUTION</div>
+                         <div className="text-xs font-mono text-slate-300">{iter.executionDecision || 'N/A'}</div>
+                       </div>
+                     </div>
+                     {iter.stopReason && (
+                       <div className="mt-2 text-xs text-amber-400/90 font-mono">
+                         =&gt; STOPPED: {iter.stopReason}
+                       </div>
+                     )}
+                  </div>
+               ))}
+               {(!agentData.iterations || agentData.iterations.length === 0) && (
+                 <div className="text-slate-500 text-sm font-mono text-center py-4">No iterations yet</div>
+               )}
+             </div>
+          </div>
+
+          <div className="flex gap-3">
+             {agentData.run.status === 'STOPPED' && agentData.run.stopReason !== 'USER_CANCELLED' && (
+                <button onClick={() => handleAgentAction('continue', agentData.run.id)} disabled={actionLoading} className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition disabled:opacity-50 flex items-center justify-center gap-2">Resume Autonomous Loop</button>
+             )}
+             {agentData.run.status === 'RUNNING' && (
+                <button onClick={() => handleAgentAction('cancel', agentData.run.id)} disabled={actionLoading} className="flex-1 py-3 rounded-xl bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/30 font-bold transition disabled:opacity-50">Cancel Run</button>
+             )}
+          </div>
+        </div>
+      )}
+
 
       {/* G4.13 EXECUTION CONTROL PANEL */}
       {executionData && executionData.request && (

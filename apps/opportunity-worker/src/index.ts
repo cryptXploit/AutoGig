@@ -121,117 +121,62 @@ const { ActionType } = require('@autogig/core');
        explainRepo.save(report);
        console.log(`[ExplainabilityEngine] ${oppId}: Report generated (Coverage ${Math.round(report.evidenceCoverage)}%)`);
 
-       // Evaluate Policy
-       const policyRepo = new (require('@autogig/db').SQLitePolicyDecisionRepository)(db);
-       const usageRepo = new (require('@autogig/db').SQLiteActionUsageRepository)(db);
-       
-       let targetAction = ActionType.DISCOVER_OPPORTUNITY;
-       if (plan.finalDecision === 'APPLY_NOW') targetAction = ActionType.SEND_PROPOSAL;
-       else if (plan.finalDecision === 'BLOCK') targetAction = ActionType.DECLINE_OPPORTUNITY;
-       
-       
-       // CONTEXT LOADER (G4.12)
-       const profileRepo = new (require('@autogig/db').SQLiteUserIntelligenceProfileRepository)(db);
-       const upolicyRepo = new (require('@autogig/db').SQLiteUserPolicyRepository)(db);
-       const uevRepo = new (require('@autogig/db').SQLiteUserEvidenceRepository)(db);
-       
-       const contextLoader = new UserIntelligenceContextLoader(profileRepo, upolicyRepo, uevRepo, new UserContextValidator());
-       const context = contextLoader.load('u1'); // Canonical Demo User
-       const userPolicy = context.policy;
+       // G4.14: AGENT CONTROLLER (REPLACES MANUAL SEQUENCE)
+         const { AgentController } = require('@autogig/engine');
+         const { SQLiteAgentRunRepository, SQLiteAgentIterationRepository } = require('@autogig/db');
+         const { SQLiteExecutionRequestRepository, SQLiteExecutionResultRepository, SQLiteExecutionAuditRepository } = require('@autogig/db');
+         const { LocalDemoPlatformAdapter } = require('@autogig/engine');
 
-       const actionReq = {
-         opportunityId: oppId,
-         actionType: targetAction,
-         platform: opp.source,
-         proposedRate: plan.confidence > 80 ? 100 : 40, // Demo mock for testing rate limits
-         targetClient: opp.description.includes('Bad Client Inc') ? 'Bad Client Inc' : 'Good Client'
-       };
-       
-       const startOfDay = new Date();
-       startOfDay.setHours(0,0,0,0);
-       const usage = usageRepo.getUsageCount('u1', opp.source, targetAction, startOfDay);
+         const runRepo = new SQLiteAgentRunRepository(db);
+         const iterRepo = new SQLiteAgentIterationRepository(db);
+         
+         const execReqRepo = new SQLiteExecutionRequestRepository(db);
+         const execResRepo = new SQLiteExecutionResultRepository(db);
+         const execAuditRepo = new SQLiteExecutionAuditRepository(db);
+         const demoAdapter = new LocalDemoPlatformAdapter({} as any);
 
-       
-       const policyEngine = new ActionPolicyEngine();
-       const platformPolicy = new LocalDemoPlatformPolicy();
-       platformPolicy.platform = opp.source;
+         const orchestrator = new (require('@autogig/engine').ActionExecutionOrchestrator)({
+           requestRepo: execReqRepo,
+           resultRepo: execResRepo,
+           auditRepo: execAuditRepo,
+           policyRepo: new (require('@autogig/db').SQLitePolicyDecisionRepository)(db),
+           readinessRepo: new (require('@autogig/db').SQLiteExecutionReadinessRepository)(db),
+           platformAdapter: demoAdapter
+         });
 
-       const policyDecision = policyEngine.evaluateAction(actionReq, userPolicy, platformPolicy, plan, report, usage);
-       policyRepo.save(policyDecision);
-       console.log(`[PolicyEngine] ${oppId}: Action ${targetAction} evaluated as ${policyDecision.disposition}`);
-       
-       // STRATEGY ENGINE
-       const stratRepo = new (require('@autogig/db').SQLiteOpportunityStrategyRepository)(db);
-       const stratEngine = new OpportunityStrategyEngine();
-       const strategyResult = stratEngine.evaluate(opp, evaluation, report, policyDecision);
-       stratRepo.save(strategyResult);
-       console.log(`[StrategyEngine] ${oppId}: ${strategyResult.strategy} (Priority: ${strategyResult.priorityScore})`);
+         const agentController = new AgentController({
+           runRepo: runRepo,
+           iterationRepo: iterRepo,
+           execReqRepo: execReqRepo,
+           policyEngine: new ActionPolicyEngine(),
+           strategyEngine: new OpportunityStrategyEngine(),
+           readinessEngine: new ExecutionReadinessEngine(),
+           orchestrator: orchestrator,
+           oppRepo: oppRepo,
+           evalRepo: evalRepo,
+           explainRepo: explainRepo,
+           userContextLoader: new UserIntelligenceContextLoader(
+              new (require('@autogig/db').SQLiteUserIntelligenceProfileRepository)(db),
+              new (require('@autogig/db').SQLiteUserPolicyRepository)(db),
+              new (require('@autogig/db').SQLiteUserEvidenceRepository)(db),
+              new UserContextValidator()
+           )
+         });
 
-
-       // EXECUTION READINESS ENGINE (G4.12)
-       const erRepo = new (require('@autogig/db').SQLiteExecutionReadinessRepository)(db);
-       const erEngine = new ExecutionReadinessEngine();
-       const readiness = erEngine.evaluate(strategyResult, policyDecision, context);
-       erRepo.save(readiness);
-       console.log(`[ExecutionReadiness] ${oppId}: ${readiness.state} (Score: ${readiness.readinessScore})`);
-
-       // ACTION EXECUTION ORCHESTRATOR (G4.13)
-       const { ActionExecutionOrchestrator, LocalDemoPlatformAdapter } = require('@autogig/engine');
-       const { SQLiteExecutionRequestRepository, SQLiteExecutionResultRepository, SQLiteExecutionAuditRepository } = require('@autogig/db');
-       
-       const execReqRepo = new SQLiteExecutionRequestRepository(db);
-       const execResRepo = new SQLiteExecutionResultRepository(db);
-       const execAuditRepo = new SQLiteExecutionAuditRepository(db);
-       const demoAdapter = new LocalDemoPlatformAdapter({} as any);
-
-       const orchestrator = new ActionExecutionOrchestrator({
-         requestRepo: execReqRepo,
-         resultRepo: execResRepo,
-         auditRepo: execAuditRepo,
-         policyRepo: policyRepo,
-         readinessRepo: erRepo,
-         platformAdapter: demoAdapter
-       });
-
-       // Only create an execution request if strategy indicates action and it hasn't been blocked
-       const actionStrategies = ['APPLY_NOW', 'NEGOTIATE_FIRST', 'ASK_CLIENT_FIRST', 'PREPARE_AND_APPLY'];
-       if (actionStrategies.includes(strategyResult.strategy) && readiness.state !== 'BLOCKED' && policyDecision.disposition !== 'BLOCK_ACTION') {
-          
-          let existingReq = execReqRepo.getLatestByOpportunityId(oppId);
-          if (!existingReq || existingReq.status === 'CANCELLED' || existingReq.status === 'FAILED') {
-              const reqId = 'exec-' + Math.random().toString(36).substring(2, 9);
-              
-              // We map strategy to an ActionType. 
-              let actionToTake = ActionType.SEND_PROPOSAL;
-              if (strategyResult.strategy === 'NEGOTIATE_FIRST') actionToTake = ActionType.NEGOTIATE_RATE;
-              if (strategyResult.strategy === 'ASK_CLIENT_FIRST') actionToTake = ActionType.REQUEST_CLARIFICATION;
-              
-              const newReq = {
-                id: reqId,
-                opportunityId: oppId,
-                actionType: actionToTake,
-                platform: 'local-demo',
-                payload: { strategy: strategyResult.strategy },
-                policyDecisionId: policyDecision.id,
-                executionReadinessId: readiness.opportunityId,
-                requestedBy: 'opportunity-worker',
-                status: 'DRAFT',
-                createdAt: new Date(),
-                updatedAt: new Date()
-              };
-              
-              execReqRepo.create(newReq);
-              
-              // Move to validated
-              const result = await orchestrator.processRequest(newReq);
-              console.log('[ActionExecution] ' + oppId + ': Request created and processed -> ' + result.status);
-          }
-       }
-
-
-
-
-    } else {
+         console.log(`[AgentController] ${oppId}: Starting/Tick run...`);
+         
+         try {
+           let run = runRepo.getLatestByOpportunityId(oppId);
+           if (!run || run.status !== 'RUNNING') {
+              run = await agentController.startRun(oppId, 'APPLY_FOR_OPPORTUNITY');
+           } else {
+              run = await agentController.handleEvent(oppId, triggerEvent);
+           }
+           console.log(`[AgentController] ${oppId}: Run ${run?.id} status ${run?.status} - ${run?.stopReason || 'Continuing'}`);
+         } catch (e) {
+           console.error(`[AgentController] Error executing agent run:`, e);
+         }
+      } else {
        console.log(`[LifecycleEngine] ${oppId}: Decision STABLE_REVIEW.`);
     }
 } catch (err) {

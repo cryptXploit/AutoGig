@@ -34,3 +34,5 @@ export * from './profile/UserIntelligenceContextLoader';
 export * from './readiness/ExecutionReadinessEngine';
 
 export * from './execution/ActionExecutionOrchestrator';
+
+export * from './agent/AgentController';

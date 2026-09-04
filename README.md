@@ -253,3 +253,51 @@ node tests/phase-g4.12.test.js    # Verifies Execution Readiness & Constraints
 
 ---
 *AutoGig — 2026 Hackathon Submission*
+
+## G4.14 — Closed-Loop Autonomous Agent Controller
+
+**Status: Completed**
+
+The G4.14 phase turns AutoGig into a fully autonomous bounded agent. It sits on top of all earlier intelligence engines (G4.1-G4.13) and orchestrates them in a strict closed-loop cycle. 
+
+### What was added
+- **Autonomous Agent Controller**: A robust orchestrator (Observe -> Plan -> Check -> Execute -> Replan).
+- **Bounded Reasoning Loop**: Limits iterations to prevent infinite looping.
+- **Agent State & Persistence**: Agent Runs and Iterations are stored in `agent_runs` and `agent_iterations` in SQLite to provide an unbreakable audit trail of what the AI observed, planned, and why it was authorized.
+- **Action Planning**: The AgentPlanner dynamically reads the Strategy (G4.11) and maps it into deterministic, executable actions.
+- **Deterministic Gates**: Policy Guard (G4.10) and Execution Readiness (G4.12) cannot be bypassed. The AI *proposes*, but the deterministic logic *authorizes*.
+- **Human Approval Boundary**: When human approval is required, the Agent pauses its run (`PENDING_APPROVAL`) and explicitly waits. 
+- **Event-Driven Replanning**: Incoming events (e.g., message received) can wake the Agent up to continue its loop.
+
+### Architecture
+
+```mermaid
+flowchart TD
+    A[Opportunity/Event] --> B[Agent Controller]
+    B --> C[Observe]
+    C --> D[Understand]
+    D --> E[Plan]
+    E --> F[Policy Guard]
+    F --> G[Execution Readiness]
+    G --> H{Approval Required?}
+    H -->|Yes| I[Human Approval]
+    H -->|No| J[Execution Orchestrator]
+    I --> J
+    J --> K[Local Demo Platform Adapter]
+    K --> L[Execution Result]
+    L --> M[Learn / Update State]
+    M --> N[Replan]
+    N --> B
+```
+
+**AI proposes. Policy authorizes. Readiness verifies. Human approves when required. Orchestrator executes. Every step is audited.**
+
+### Safety Guarantees
+- Hard rejections cannot be overridden by AI hallucination.
+- AI cannot self-approve its actions.
+- Execution cannot bypass the Policy/Execution Readiness guards.
+- Iteration limits strictly prevent runaway infinite loops.
+- All testing remains bound to the `LocalDemoPlatformAdapter`. AutoGig does not interact with external platforms in this phase.
+
+### Development Journey updates
+- **G4.14**: Introduced bounded closed-loop agent control. Connected strategy, policy, readiness and execution into one lifecycle. Added persistent agent runs and iteration audit. Added deterministic loop guards. Added human approval boundaries.

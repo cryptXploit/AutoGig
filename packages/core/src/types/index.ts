@@ -889,3 +889,76 @@ export interface ExecutionAuditRecord {
   actor: string;
   timestamp: Date;
 }
+
+
+// G4.14: Agent Controller Types
+export type AgentGoal = 
+  | 'APPLY_FOR_OPPORTUNITY'
+  | 'CLARIFY_REQUIREMENTS'
+  | 'NEGOTIATE_RATE'
+  | 'RESPOND_TO_CLIENT'
+  | 'PREPARE_APPLICATION'
+  | 'WAIT_FOR_CLIENT'
+  | 'MONITOR_OPPORTUNITY';
+
+export type AgentStopReason =
+  | 'GOAL_ACHIEVED'
+  | 'MAX_ITERATIONS'
+  | 'POLICY_BLOCKED'
+  | 'READINESS_BLOCKED'
+  | 'HUMAN_APPROVAL_REQUIRED'
+  | 'NO_VALID_ACTION'
+  | 'EXECUTION_FAILED'
+  | 'OPPORTUNITY_REJECTED'
+  | 'OPPORTUNITY_EXPIRED'
+  | 'USER_CANCELLED'
+  | 'PLATFORM_UNAVAILABLE'
+  | 'WAITING_FOR_EVENT';
+
+export interface AgentRun {
+  id: string;
+  opportunityId: string;
+  goal: AgentGoal;
+  status: 'RUNNING' | 'PAUSED' | 'STOPPED' | 'COMPLETED' | 'FAILED';
+  currentStep: string;
+  iteration: number;
+  maxIterations: number;
+  stopReason?: AgentStopReason;
+  startedAt: Date;
+  updatedAt: Date;
+  completedAt?: Date;
+}
+
+export interface AgentActionPlan {
+  actionType: ActionType;
+  reason: string;
+  expectedOutcome: string;
+  requiredEvidence: string[];
+  requiresHumanApproval: boolean;
+  confidence: number;
+}
+
+export interface AgentState {
+  opportunityId: string;
+  currentStrategy?: string;
+  policyDisposition?: string;
+  readinessState?: string;
+  lastExecutionStatus?: string;
+  pendingApproval: boolean;
+  previousActionTypes: ActionType[];
+  consecutiveIdenticalActions: number;
+}
+
+export interface AgentIteration {
+  id: string;
+  runId: string;
+  iteration: number;
+  observedState: AgentState;
+  selectedAction?: AgentActionPlan;
+  policyDecision?: any; // Will map to PolicyDecision but keep simple here
+  readinessDecision?: any; // Will map to ExecutionReadiness
+  executionDecision?: string; // e.g. "PROCEED", "BLOCK", "REQUEST_APPROVAL"
+  result?: any; // ExecutionResult or failure msg
+  stopReason?: AgentStopReason;
+  timestamp: Date;
+}

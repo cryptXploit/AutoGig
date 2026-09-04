@@ -570,6 +570,25 @@ export class SQLitePolicyDecisionRepository {
     );
   }
 
+  
+  findByOpportunityId(opportunityId: string): PolicyDecision | null {
+    const row = this.db.prepare('SELECT * FROM policy_decisions WHERE opportunityId = ? ORDER BY createdAt DESC LIMIT 1').get(opportunityId) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      opportunityId: row.opportunityId,
+      actionType: row.actionType,
+      platform: row.platform,
+      disposition: row.disposition,
+      reasons: JSON.parse(row.reasons),
+      violatedRules: JSON.parse(row.violatedRules),
+      policyVersion: row.policyVersion,
+      evaluatedAt: new Date(row.createdAt),
+      requiredApprovals: [],
+      confidence: 100
+    };
+  }
+
   getLatestByOpportunityAndAction(opportunityId: string, actionType: string): PolicyDecision | null {
     const row = this.db.prepare('SELECT * FROM policy_decisions WHERE opportunityId = ? AND actionType = ? ORDER BY createdAt DESC LIMIT 1').get(opportunityId, actionType) as any;
     if (!row) return null;
