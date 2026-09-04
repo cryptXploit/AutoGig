@@ -135,19 +135,25 @@ const { ActionType } = require('@autogig/core');
          const execAuditRepo = new SQLiteExecutionAuditRepository(db);
          const demoAdapter = new LocalDemoPlatformAdapter({} as any);
 
-         const orchestrator = new (require('@autogig/engine').ActionExecutionOrchestrator)({
-           requestRepo: execReqRepo,
-           resultRepo: execResRepo,
-           auditRepo: execAuditRepo,
-           policyRepo: new (require('@autogig/db').SQLitePolicyDecisionRepository)(db),
-           readinessRepo: new (require('@autogig/db').SQLiteExecutionReadinessRepository)(db),
-           platformAdapter: demoAdapter
-         });
+         
+           const policyRepo = new (require('@autogig/db').SQLitePolicyDecisionRepository)(db);
+           const readinessRepo = new (require('@autogig/db').SQLiteExecutionReadinessRepository)(db);
+           const orchestrator = new (require('@autogig/engine').ActionExecutionOrchestrator)({
+             requestRepo: execReqRepo,
+             resultRepo: execResRepo,
+             auditRepo: execAuditRepo,
+             policyRepo: policyRepo,
+             readinessRepo: readinessRepo,
+             platformAdapter: demoAdapter
+           });
+  
+           const agentController = new AgentController({
+             runRepo: runRepo,
+             iterationRepo: iterRepo,
+             execReqRepo: execReqRepo,
+             policyRepo: policyRepo,
+             readinessRepo: readinessRepo,
 
-         const agentController = new AgentController({
-           runRepo: runRepo,
-           iterationRepo: iterRepo,
-           execReqRepo: execReqRepo,
            policyEngine: new ActionPolicyEngine(),
            strategyEngine: new OpportunityStrategyEngine(),
            readinessEngine: new ExecutionReadinessEngine(),

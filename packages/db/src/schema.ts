@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 
 export function initializeSchema(db: DatabaseSync): void {
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS agent_runs (
       id TEXT PRIMARY KEY,
@@ -69,6 +70,12 @@ CREATE TABLE IF NOT EXISTS execution_requests (
       actor TEXT NOT NULL,
       timestamp TEXT
     )
+  `);
+
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_agent_runs_opp_id ON agent_runs (opportunityId);
+    CREATE INDEX IF NOT EXISTS idx_agent_iterations_run_id ON agent_iterations (runId);
   `);
 
 }

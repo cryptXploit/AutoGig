@@ -663,8 +663,15 @@ app.post('/api/agent/runs/:id/continue', async (req, res) => {
       )
     });
     
+
     const run = runRepo.findById(req.params.id);
     if (!run) return res.status(404).json({ error: 'Run not found' });
+    
+    // Resume guards
+    const unresumable = ['GOAL_ACHIEVED', 'USER_CANCELLED', 'POLICY_BLOCKED', 'MAX_ITERATIONS'];
+    if (run.stopReason && unresumable.includes(run.stopReason)) {
+       return res.status(400).json({ error: 'Cannot resume run with stop reason: ' + run.stopReason });
+    }
     
     // Resume
     run.status = 'RUNNING';
