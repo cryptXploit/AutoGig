@@ -347,9 +347,22 @@ export interface ApplicationIntelligence {
 export type CareerMemoryCategory = 'SKILL' | 'OPPORTUNITY' | 'STRATEGY' | 'CLIENT' | 'RATE';
 export type MemoryConfidenceLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'ABSOLUTE';
 
+
+export interface CareerMemorySignal {
+  adjustment: number;
+  confidence: number;
+  matchedRecords: string[];
+  reasons: string[];
+}
+
 export interface MemoryExplanation {
   evidenceCount: number;
   positiveOutcomes: number;
+  weightedPositive: number;
+  weightedNegative: number;
+  weightedNeutral: number;
+  weightedSampleSize: number;
+  weightedSuccessRate: number;
   negativeOutcomes: number;
   neutralOutcomes: number;
   recentRelevantCount: number;
@@ -358,6 +371,7 @@ export interface MemoryExplanation {
 }
 
 export interface CareerMemoryRecord {
+  userId: string;
   id: string;
   category: CareerMemoryCategory;
   key: string;            // e.g., "STRATEGY:NEGOTIATE_FIRST", "SKILL:react", "RATE_TIER:30-50"

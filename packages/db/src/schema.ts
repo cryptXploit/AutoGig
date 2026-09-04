@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS execution_requests (
   db.exec(`
     CREATE TABLE IF NOT EXISTS career_memory (
       id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
       category TEXT NOT NULL,
       key TEXT NOT NULL,
       value TEXT NOT NULL,
@@ -96,7 +97,7 @@ CREATE TABLE IF NOT EXISTS execution_requests (
       lastObservedAt TEXT NOT NULL,
       expiresAt TEXT
     );
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_career_memory_key ON career_memory(key);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_career_memory_user_key ON career_memory(userId, key);
   `);
 
 
