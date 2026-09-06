@@ -40,3 +40,5 @@ export * from './agent/AgentController';
 export * from './memory/CareerMemoryEngine';
 
 export * from './simulation/OpportunitySimulator';
+
+export * from './explainability/DecisionTraceBuilder';

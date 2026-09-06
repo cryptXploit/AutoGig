@@ -1,6 +1,7 @@
 ﻿"use client";
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { DecisionTimeline } from '../../../components/DecisionTimeline';
 import { ArrowLeft, CheckCircle, AlertTriangle, XOctagon, Loader2, DollarSign, Target, Shield, Clock, Activity, FileText, CheckSquare, Zap, AlertCircle, MessageSquare } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 
@@ -360,10 +361,11 @@ export default function OpportunityDetail({ params }: { params: { id: string } }
                           {evaluation.qualificationFlags && evaluation.qualificationFlags !== '[]' ? evaluation.qualificationFlags : 'No flags identified.'}
                         </p>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        <DecisionTimeline opportunityId={params.id} />
+      </div>
+    </div>
+    </div>
+  </div>
 
               {/* 7. Economic Analysis */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">

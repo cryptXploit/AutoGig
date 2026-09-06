@@ -1056,3 +1056,62 @@ export interface AgentIteration {
   stopReason?: AgentStopReason;
   timestamp: Date;
 }
+
+
+// --- G4.17 Decision Trace ---
+
+export enum DecisionTraceStepType {
+  OBSERVATION = 'OBSERVATION',
+  EVALUATION = 'EVALUATION',
+  HISTORICAL_INTELLIGENCE = 'HISTORICAL_INTELLIGENCE',
+  CAREER_MEMORY = 'CAREER_MEMORY',
+  STRATEGY = 'STRATEGY',
+  POLICY = 'POLICY',
+  READINESS = 'READINESS',
+  ACTION_PLAN = 'ACTION_PLAN',
+  APPROVAL = 'APPROVAL',
+  EXECUTION = 'EXECUTION',
+  RESULT = 'RESULT',
+  STOP = 'STOP',
+  SIMULATION = 'SIMULATION'
+}
+
+export interface DecisionTraceSource {
+  type: string;
+  id: string;
+  label?: string;
+}
+
+export interface AgentDecisionTraceStep {
+  id: string;
+  runId: string;
+  opportunityId: string;
+  iteration: number;
+  stepType: DecisionTraceStepType;
+  status: 'SUCCESS' | 'WARNING' | 'ERROR' | 'INFO';
+  title: string;
+  summary: string;
+  reason?: string[];
+  inputs?: any;
+  outputs?: any;
+  sourceReferences?: DecisionTraceSource[];
+  timestamp: Date;
+}
+
+export interface AgentDecisionTraceSummary {
+  opportunityId: string;
+  finalAction?: string;
+  finalStrategy?: string;
+  policyDisposition?: string;
+  readinessState?: string;
+  iterations: number;
+  executionStatus?: string;
+  stopReason?: string;
+  generatedAt: Date;
+  traceModelVersion: string;
+}
+
+export interface AgentDecisionTrace {
+  summary: AgentDecisionTraceSummary;
+  steps: AgentDecisionTraceStep[];
+}
