@@ -348,6 +348,52 @@ export type CareerMemoryCategory = 'SKILL' | 'OPPORTUNITY' | 'STRATEGY' | 'CLIEN
 export type MemoryConfidenceLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'ABSOLUTE';
 
 
+
+// Phase G4.16: Simulation
+export interface SimulationOverrides {
+  MIN_RATE?: number;
+  REQUIRE_HUMAN_APPROVAL?: boolean;
+  STRATEGY?: import('./index').StrategyType;
+  BLOCK_CLIENT?: string;
+  USE_MEMORY?: boolean;
+}
+
+export interface DecisionSnapshot {
+  priorityScore: number;
+  strategy: import('./index').StrategyType;
+  policyDisposition: string;
+  policyViolations: string[];
+  readinessState: 'READY_TO_DRAFT' | 'READY_FOR_REVIEW' | 'READY_FOR_HUMAN_APPROVAL' | 'BLOCKED' | 'READY_TO_EXECUTE' | 'UNKNOWN';
+  projectedAction: import('./index').ActionType | 'NONE';
+  reasons: string[];
+  risks: string[];
+}
+
+export interface SimulationScenario {
+  id: string;
+  name: string;
+  overrides: SimulationOverrides;
+}
+
+export interface SimulationComparison {
+  changed: boolean;
+  scoreDelta: number;
+  strategyChanged: boolean;
+  policyChanged: boolean;
+  readinessChanged: boolean;
+  actionChanged: boolean;
+  explanation: string[];
+}
+
+export interface SimulationResult {
+  scenarioId: string;
+  scenarioName: string;
+  overrides: SimulationOverrides;
+  baseline: DecisionSnapshot;
+  scenario: DecisionSnapshot;
+  comparison: SimulationComparison;
+}
+
 export interface CareerMemorySignal {
   adjustment: number;
   confidence: number;
