@@ -355,6 +355,7 @@ export interface SimulationOverrides {
   REQUIRE_HUMAN_APPROVAL?: boolean;
   STRATEGY?: import('./index').StrategyType;
   BLOCK_CLIENT?: string;
+  EVIDENCE_AVAILABLE?: boolean;
   USE_MEMORY?: boolean;
 }
 
