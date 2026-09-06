@@ -101,7 +101,17 @@ db.prepare('UPDATE evaluations SET historicalIntelligence = ? WHERE opportunityI
   if (runsBefore.id !== runsAfter.id) throw new Error("Test B Failed: Re-building trace mutated run repo!");
 
   const trace2 = await builder.buildTrace(oppId);
-  if (trace.steps.length !== trace2.steps.length || trace.summary.iterations !== trace2.summary.iterations) throw new Error("Test C Failed: Trace is not deterministic.");
+  
+  const t1 = JSON.parse(JSON.stringify(trace));
+  const t2 = JSON.parse(JSON.stringify(trace2));
+  delete t1.summary.generatedAt;
+  delete t2.summary.generatedAt;
+  
+  if (JSON.stringify(t1) !== JSON.stringify(t2)) {
+    throw new Error("Test C Failed: Trace is not byte-for-byte deterministic.\n" + JSON.stringify(t1) + "\n" + JSON.stringify(t2));
+  }
+
+  if (false) throw new Error("Test C Failed: Trace is not deterministic.");
 
   console.log("ALL TESTS PASSED: phase-g4.17-runtime");
 }

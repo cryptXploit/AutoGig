@@ -1092,8 +1092,8 @@ export interface AgentDecisionTraceStep {
   title: string;
   summary: string;
   reason?: string[];
-  inputs?: any;
-  outputs?: any;
+  inputs?: Record<string, unknown>;
+  outputs?: Record<string, unknown>;
   sourceReferences?: DecisionTraceSource[];
   timestamp: Date;
 }
