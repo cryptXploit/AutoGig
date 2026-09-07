@@ -1,3 +1,4 @@
+import { migrateG418UserOwnership } from './migrations/g4.18-user-ownership';
 import { DatabaseSync } from 'node:sqlite';
 
 export function initializeSchema(db: DatabaseSync): void {
@@ -101,4 +102,5 @@ CREATE TABLE IF NOT EXISTS execution_requests (
   `);
 
 
+  migrateG418UserOwnership(db);
 }

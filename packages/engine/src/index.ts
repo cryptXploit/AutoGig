@@ -42,3 +42,7 @@ export * from './memory/CareerMemoryEngine';
 export * from './simulation/OpportunitySimulator';
 
 export * from './explainability/DecisionTraceBuilder';
+
+export * from './auth/LocalDemoIdentityAdapter';
+export * from './explainability/DecisionEvidenceLedger';
+export * from './explainability/EvidenceIntegrityValidator';

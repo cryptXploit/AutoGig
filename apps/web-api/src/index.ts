@@ -16,6 +16,15 @@ import {
 import { canTransition, CanonicalOpportunity } from '@autogig/core';
 import { randomUUID } from 'crypto';
 
+
+const { LocalDemoIdentityAdapter } = require('@autogig/engine');
+const authAdapter = new LocalDemoIdentityAdapter();
+
+function getAuthenticatedUserId(req: import('express').Request): string | null {
+  const principal = authAdapter.authenticate(req);
+  return principal ? principal.id : null;
+}
+
 const app = express();
 
 const WEB_APP_URL = process.env.WEB_APP_URL || 'http://localhost:3000';
@@ -462,7 +471,7 @@ app.get('/api/strategy/opportunities', async (req, res) => {
     const rows = db.prepare('SELECT * FROM opportunity_strategy').all();
     const strategies = rows.map((r: any) => JSON.parse(r.data)).sort((a: any, b: any) => b.priorityScore - a.priorityScore);
     res.json(strategies);
-  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 app.get('/api/profile/intelligence', (req, res) => {
@@ -471,7 +480,7 @@ app.get('/api/profile/intelligence', (req, res) => {
     const repo = new (require('@autogig/db').SQLiteUserIntelligenceProfileRepository)(db);
     const profile = repo.findById('u1');
     res.json(profile || { id: 'u1', identity: { name: '', headline: '' }, professional: { skills: [] } });
-  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 app.put('/api/profile/intelligence', (req, res) => {
@@ -480,7 +489,7 @@ app.put('/api/profile/intelligence', (req, res) => {
     const repo = new (require('@autogig/db').SQLiteUserIntelligenceProfileRepository)(db);
     repo.save(req.body);
     res.json({ success: true });
-  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 app.get('/api/policy', (req, res) => {
@@ -489,7 +498,7 @@ app.get('/api/policy', (req, res) => {
     const repo = new (require('@autogig/db').SQLiteUserPolicyRepository)(db);
     const policy = repo.findById('u1');
     res.json(policy || { id: 'u1', targetRate: 50, minimumRate: 20, maximumNegotiationDiscount: 10, maxDailyApplications: 10, autonomyLevel: 'MANUAL', autoSendEnabled: false, requireApprovalForProposalSubmission: true, blockedClients: [] });
-  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 app.put('/api/policy', (req, res) => {
@@ -505,7 +514,7 @@ app.put('/api/policy', (req, res) => {
     
     repo.save('u1', req.body);
     res.json({ success: true });
-  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 app.get('/api/execution-readiness/:opportunityId', (req, res) => {
@@ -513,7 +522,7 @@ app.get('/api/execution-readiness/:opportunityId', (req, res) => {
     
     const repo = new (require('@autogig/db').SQLiteExecutionReadinessRepository)(db);
     res.json(repo.findByOpportunityId(req.params.opportunityId) || { error: 'Not found' });
-  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 
@@ -532,7 +541,7 @@ app.get('/api/executions/opportunity/:opportunityId', (req, res) => {
     const audit = auditRepo.findByOpportunityId(req.params.opportunityId);
     
     res.json({ request, result, audit });
-  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 app.post('/api/executions/:id/approve', (req, res) => {
@@ -554,7 +563,7 @@ app.post('/api/executions/:id/approve', (req, res) => {
     
     orchestrator.approve(request);
     res.json({ success: true, request });
-  } catch (err: any) { res.status(400).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(400).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 app.post('/api/executions/:id/reject', (req, res) => {
@@ -576,7 +585,7 @@ app.post('/api/executions/:id/reject', (req, res) => {
     
     orchestrator.reject(request);
     res.json({ success: true, request });
-  } catch (err: any) { res.status(400).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(400).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 app.post('/api/executions/:id/execute', async (req, res) => {
@@ -602,7 +611,7 @@ app.post('/api/executions/:id/execute', async (req, res) => {
     
     const result = await orchestrator.processRequest(request);
     res.json({ success: true, result });
-  } catch (err: any) { res.status(400).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(400).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 
@@ -618,7 +627,7 @@ app.get('/api/agent/runs/opportunity/:opportunityId', (req, res) => {
     
     const iterations = iterRepo.findByRunId(run.id);
     res.json({ success: true, data: { run, iterations } });
-  } catch (err: any) { res.status(500).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 app.post('/api/agent/runs/:id/continue', async (req, res) => {
@@ -680,7 +689,7 @@ app.post('/api/agent/runs/:id/continue', async (req, res) => {
     
     const newRun = await agentController.tick(run);
     res.json({ success: true, run: newRun });
-  } catch (err: any) { res.status(400).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(400).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 app.post('/api/agent/runs/:id/cancel', (req, res) => {
@@ -698,7 +707,7 @@ app.post('/api/agent/runs/:id/cancel', (req, res) => {
     runRepo.save(run);
     
     res.json({ success: true, run });
-  } catch (err: any) { res.status(400).json({ error: (err as Error).message }); }
+  } catch (err: unknown) { res.status(400).json({ error: err instanceof Error ? err.message : 'Unknown error' }); }
 });
 
 
@@ -737,7 +746,7 @@ app.get('/api/agent/runs/opportunity/:opportunityId/trace', async (req, res) => 
       { findById: async (id: string) => profileRepo.getProfile(id) },
       { findById: (id: string) => policyRepo.findById(id) },
       { findByUserId: (id: string) => evRepo.findByUserId(id) },
-      validator as any
+      validator
     );
 
     const builder = new DecisionTraceBuilder({
@@ -753,7 +762,7 @@ app.get('/api/agent/runs/opportunity/:opportunityId/trace', async (req, res) => 
       summary: trace.summary,
       steps: trace.steps
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -182,8 +182,9 @@ export class SQLiteEvaluationRepository {
       if (!row) return null;
       return {
         id: row.id,
-        opportunityId: row.opportunityId,
-        evaluationRoute: row.route,
+          opportunityId: row.opportunityId,
+          userId: row.userId,
+          evaluationRoute: row.route,
         qualificationFlags: row.qualificationFlags ? JSON.parse(row.qualificationFlags) : [],
         priority: row.priority,
         deepReasonStatus: row.deepReasonStatus,
@@ -534,7 +535,7 @@ export class SQLiteDecisionExplainabilityRepository {
       report.confidence,
       report.evidenceCoverage,
       JSON.stringify(report),
-      report.generatedAt.toISOString(),
+      (report.generatedAt || new Date()).toISOString(),
       new Date().toISOString()
     );
   }
@@ -680,7 +681,7 @@ export class SQLiteOpportunityStrategyRepository {
       JSON.stringify(strategy.reasons),
       JSON.stringify(strategy.risks),
       strategy.confidence,
-      strategy.generatedAt.toISOString(),
+      (strategy.generatedAt || new Date()).toISOString(),
       new Date().toISOString()
     );
   }
@@ -690,7 +691,9 @@ export class SQLiteOpportunityStrategyRepository {
     if (!row) return null;
     return {
       opportunityId: row.opportunityId,
-      strategy: row.strategy as StrategyType,
+        userId: row.userId || 'user-local',
+        memoryProvenance: row.memoryProvenance ? JSON.parse(row.memoryProvenance) : [],
+        strategy: row.strategy as StrategyType,
       priority: row.priority as OpportunityPriority,
       priorityScore: row.priorityScore,
       urgency: row.urgency as OpportunityUrgency,
@@ -714,7 +717,9 @@ export class SQLiteOpportunityStrategyRepository {
     const rows = this.db.prepare('SELECT * FROM opportunity_strategy ORDER BY priorityScore DESC').all() as any[];
     return rows.map(row => ({
       opportunityId: row.opportunityId,
-      strategy: row.strategy as StrategyType,
+        userId: row.userId || 'user-local',
+        memoryProvenance: row.memoryProvenance ? JSON.parse(row.memoryProvenance) : [],
+        strategy: row.strategy as StrategyType,
       priority: row.priority as OpportunityPriority,
       priorityScore: row.priorityScore,
       urgency: row.urgency as OpportunityUrgency,

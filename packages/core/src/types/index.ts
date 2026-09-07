@@ -196,6 +196,7 @@ export interface ScoreBreakdown {
 }
 
 export interface EvaluationRecord {
+  userId: string;
   id: string;
   opportunityId: string;
   evaluationRoute: RoutingDecision;
@@ -825,6 +826,8 @@ export enum StrategyType {
 }
 
 export interface OpportunityStrategy {
+  userId: string;
+  memoryProvenance?: ExactMemoryProvenance[];
   opportunityId: string;
   urgency: OpportunityUrgency;
   priority: OpportunityPriority;
@@ -1010,6 +1013,7 @@ export type AgentStopReason =
   | 'WAITING_FOR_EVENT';
 
 export interface AgentRun {
+  userId: string;
   id: string;
   opportunityId: string;
   goal: AgentGoal;
@@ -1049,10 +1053,10 @@ export interface AgentIteration {
   iteration: number;
   observedState: AgentState;
   selectedAction?: AgentActionPlan;
-  policyDecision?: any; // Will map to PolicyDecision but keep simple here
-  readinessDecision?: any; // Will map to ExecutionReadiness
+  policyDecision?: PolicyDecision;
+  readinessDecision?: ExecutionReadiness;
   executionDecision?: string; // e.g. "PROCEED", "BLOCK", "REQUEST_APPROVAL"
-  result?: any; // ExecutionResult or failure msg
+  result?: ExecutionResult | string;
   stopReason?: AgentStopReason;
   timestamp: Date;
 }
@@ -1083,6 +1087,10 @@ export interface DecisionTraceSource {
 }
 
 export interface AgentDecisionTraceStep {
+  provenanceClass?: ProvenanceClass;
+  epistemicStatus?: EpistemicStatus;
+  truthState?: TruthState;
+  evidenceIds?: string[];
   id: string;
   runId: string;
   opportunityId: string;
@@ -1122,4 +1130,69 @@ export type AgentExecutionStatus = 'NOT_EXECUTED' | 'APPROVAL_PENDING' | 'EXECUT
 export interface AgentDecisionTraceDTO {
   summary: AgentDecisionTraceSummary;
   steps: AgentDecisionTraceStep[];
+}
+
+
+// G4.18 Truth & Evidence Domain
+export type ProvenanceClass = 'OBSERVED' | 'DERIVED' | 'HISTORICAL' | 'MEMORY' | 'POLICY' | 'READINESS' | 'ACTION_PLAN' | 'EXECUTION_REQUEST' | 'EXECUTION_RESULT' | 'SIMULATION' | 'HUMAN_APPROVAL';
+export type EvidenceNature = 'REAL' | 'SIMULATED' | 'UNAVAILABLE' | 'REDACTED';
+export type TruthState = 'KNOWN' | 'INFERRED' | 'HISTORICAL' | 'MEMORIZED' | 'SIMULATED' | 'AUTHORIZED' | 'REQUESTED' | 'EXECUTED' | 'OBSERVED_RESULT' | 'UNKNOWN';
+export type EpistemicStatus = 'FACT' | 'DERIVATION';
+export type EvidenceRelationshipType = 'SUPPORTS' | 'DERIVED_FROM' | 'CONTRIBUTES_TO' | 'AUTHORIZED_BY' | 'BLOCKED_BY' | 'RESULTED_IN' | 'SIMULATES';
+
+export interface ExactMemoryProvenance {
+  memoryRecordId: string;
+  memorySignalId: string;
+  relevance: number;
+  confidence: number;
+  temporalWeight: number;
+  boundedInfluence: string;
+}
+
+export interface EvidenceRecord {
+  id: string;
+  sourceRecordId: string;
+  sourceDomain: string;
+  evidenceType: string;
+  userId: string;
+  opportunityId?: string;
+  runId?: string;
+  iteration?: number;
+  timestamp: Date;
+  timestampSource: 'PERSISTED' | 'UNAVAILABLE';
+  provenance: ProvenanceClass;
+  epistemicStatus: EpistemicStatus;
+  nature: EvidenceNature;
+  truthState: TruthState;
+  confidence?: number;
+  status: 'VALID' | 'CONTRADICTED' | 'OVERRIDDEN' | 'EXPIRED';
+  data: Record<string, unknown>;
+}
+
+export interface EvidenceRelationship {
+  id: string;
+  sourceEvidenceId: string;
+  targetEvidenceId: string;
+  relationshipType: EvidenceRelationshipType;
+}
+
+export interface EvidenceIntegrityViolation {
+  id: string;
+  opportunityId: string;
+  userId: string;
+  runId?: string;
+  severity: 'CRITICAL' | 'WARNING' | 'INFO';
+  description: string;
+  violatedRules: string[];
+  involvedEvidenceIds: string[];
+  detectedAt: Date;
+}
+
+export interface DecisionEvidenceLedgerDTO {
+  opportunityId: string;
+  userId: string;
+  runId?: string;
+  evidence: EvidenceRecord[];
+  relationships: EvidenceRelationship[];
+  violations: EvidenceIntegrityViolation[];
 }
