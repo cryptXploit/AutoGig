@@ -1,3 +1,4 @@
+import { AgentDecisionTraceDTO, AgentDecisionTraceStep } from '@autogig/core';
 
 'use client';
 
@@ -6,7 +7,7 @@ import { useState, useEffect } from 'react';
 
 
 export function DecisionTimeline({ opportunityId }: { opportunityId: string }) {
-  const [trace, setTrace] = useState<any>(null);
+  const [trace, setTrace] = useState<AgentDecisionTraceDTO | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export function DecisionTimeline({ opportunityId }: { opportunityId: string }) {
       </div>
       <div>
         <div className="relative border-l-2 border-gray-200 ml-4 space-y-6">
-          {trace.steps.map((step: any, idx: number) => {
+          {trace.steps.map((step: AgentDecisionTraceStep, idx: number) => {
              const statusColor = 
                step.status === 'SUCCESS' ? 'bg-green-500' :
                step.status === 'WARNING' ? 'bg-yellow-500' :

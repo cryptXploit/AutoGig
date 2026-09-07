@@ -683,7 +683,7 @@ export interface ExplainabilityReport {
   unsupportedClaims: string[];
   missingEvidence: string[];
   humanReviewReason?: string;
-  generatedAt: Date;
+  generatedAt?: Date;
 }
 
 
@@ -843,7 +843,7 @@ export interface OpportunityStrategy {
   risks: string[];
   recommendedNextAction: string;
   expiresAt?: Date;
-  generatedAt: Date;
+  generatedAt?: Date;
 }
 
 
@@ -926,7 +926,7 @@ export interface ExecutionReadiness {
   blockingReasons: string[];
   nextAction: string;
   confidence: number;
-  generatedAt: Date;
+  generatedAt?: Date;
 }
 
 
@@ -1107,11 +1107,19 @@ export interface AgentDecisionTraceSummary {
   iterations: number;
   executionStatus?: string;
   stopReason?: string;
-  generatedAt: Date;
+  generatedAt?: Date;
   traceModelVersion: string;
 }
 
 export interface AgentDecisionTrace {
+  summary: AgentDecisionTraceSummary;
+  steps: AgentDecisionTraceStep[];
+}
+
+
+export type AgentExecutionStatus = 'NOT_EXECUTED' | 'APPROVAL_PENDING' | 'EXECUTED' | 'SUCCESS' | 'FAILED' | 'BLOCKED_OR_STOPPED';
+
+export interface AgentDecisionTraceDTO {
   summary: AgentDecisionTraceSummary;
   steps: AgentDecisionTraceStep[];
 }

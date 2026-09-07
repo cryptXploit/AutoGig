@@ -341,7 +341,7 @@ app.get('/api/profile', async (req, res) => {
 app.put('/api/profile', async (req, res) => {
   try {
     const profile = req.body;
-    profile.userId = 'user-local';
+    profile.userId = getAuthenticatedUserId(req); if (!profile.userId) return res.status(401).json({error: 'Unauthorized'});
     await profileRepo.saveProfile(profile);
     res.json({ success: true, data: profile });
   } catch(err: unknown) {
@@ -353,7 +353,7 @@ app.put('/api/profile', async (req, res) => {
 app.put('/api/preferences', async (req, res) => {
   try {
     const pref = req.body;
-    pref.userId = 'user-local';
+    pref.userId = getAuthenticatedUserId(req); if (!pref.userId) return res.status(401).json({error: 'Unauthorized'});
     await prefRepo.savePreference(pref);
     res.json({ success: true, data: pref });
   } catch(err: unknown) {
@@ -701,6 +701,62 @@ app.post('/api/agent/runs/:id/cancel', (req, res) => {
   } catch (err: any) { res.status(400).json({ error: (err as Error).message }); }
 });
 
+
+
+app.get('/api/agent/runs/opportunity/:opportunityId/trace', async (req, res) => {
+  try {
+    const { SQLiteOpportunityRepository, SQLiteAgentRunRepository, SQLiteAgentIterationRepository, SQLiteEvaluationRepository, SQLiteOpportunityStrategyRepository, SQLiteCareerMemoryRepository, SQLiteExecutionRequestRepository, SQLiteExecutionResultRepository, SQLiteProfileRepository, SQLiteUserPolicyRepository, SQLiteUserEvidenceRepository } = require('@autogig/db');
+    const { DecisionTraceBuilder, UserIntelligenceContextLoader } = require('@autogig/engine');
+    
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const oppRepo = new SQLiteOpportunityRepository(db);
+    // User scoping: normally opportunities might be global or scoped. In AutoGig, opportunities are global but evaluated per-user.
+    // We check if the opportunity exists. 
+    const opp = await oppRepo.findById(req.params.opportunityId);
+    if (!opp) return res.status(404).json({ error: 'Opportunity not found' });
+    
+    // In a multi-tenant system we would also verify opp ownership here if applicable.
+
+    const runRepo = new SQLiteAgentRunRepository(db);
+    const iterRepo = new SQLiteAgentIterationRepository(db);
+    const evalRepo = new SQLiteEvaluationRepository(db);
+    const strategyRepo = new SQLiteOpportunityStrategyRepository(db);
+    const memoryRepo = new SQLiteCareerMemoryRepository(db);
+    const execReqRepo = new SQLiteExecutionRequestRepository(db);
+    const execResultRepo = new SQLiteExecutionResultRepository(db);
+    
+    const profileRepo = new SQLiteProfileRepository(db);
+    const policyRepo = new SQLiteUserPolicyRepository(db);
+    const evRepo = new SQLiteUserEvidenceRepository(db);
+    const validator = { validate: () => [] };
+    
+    // Pass a properly scoped user context loader that only loads the authenticated user's context.
+    const userLoader = new UserIntelligenceContextLoader(
+      { findById: async (id: string) => profileRepo.getProfile(id) },
+      { findById: (id: string) => policyRepo.findById(id) },
+      { findByUserId: (id: string) => evRepo.findByUserId(id) },
+      validator as any
+    );
+
+    const builder = new DecisionTraceBuilder({
+      oppRepo, runRepo, iterationRepo: iterRepo, evalRepo, strategyRepo, memoryRepo,
+      userContextLoader: { loadContext: async () => userLoader.load(userId) },
+      execReqRepo, execResultRepo
+    });
+
+    const trace = await builder.buildTrace(req.params.opportunityId);
+    
+    // Return safe DTO
+    res.json({
+      summary: trace.summary,
+      steps: trace.steps
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 app.listen(PORT, () => console.log(`Web API listening on port ${PORT}`));
 
