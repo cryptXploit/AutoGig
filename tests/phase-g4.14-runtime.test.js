@@ -1,4 +1,4 @@
-﻿const { DatabaseSync } = require('node:sqlite');
+const { DatabaseSync } = require('node:sqlite');
 const { AgentController, ActionPolicyEngine, OpportunityStrategyEngine, LocalDemoPlatformAdapter, AgentLoopGuard } = require('@autogig/engine');
 const { SQLiteAgentRunRepository, SQLiteAgentIterationRepository, SQLiteExecutionRequestRepository, SQLiteExecutionResultRepository, SQLiteExecutionAuditRepository, SQLitePolicyDecisionRepository, SQLiteExecutionReadinessRepository } = require('@autogig/db');
 const { ActionExecutionOrchestrator, ExecutionReadinessEngine } = require('@autogig/engine');
@@ -84,31 +84,31 @@ async function runTests() {
   // A
   console.log("Scenario A: Safe autonomous application");
   global.current_opp = 'opp-success';
-  let run1 = await controller.startRun('opp-success', 'APPLY_FOR_OPPORTUNITY');
+  let run1 = await controller.startRun('', 'user-test', '');
   if (run1.status !== 'COMPLETED' || run1.stopReason !== 'GOAL_ACHIEVED') throw new Error('Failed Scenario A');
 
   // B
   console.log("Scenario B: Human approval required");
   global.current_opp = 'opp-approval';
-  let run2 = await controller.startRun('opp-approval', 'APPLY_FOR_OPPORTUNITY');
+  let run2 = await controller.startRun('', 'user-test', '');
   if (run2.status !== 'STOPPED' || run2.stopReason !== 'HUMAN_APPROVAL_REQUIRED') throw new Error('Failed Scenario B');
 
   // C
   console.log("Scenario C: Hard policy block");
   global.current_opp = 'opp-block';
-  let run3 = await controller.startRun('opp-block', 'APPLY_FOR_OPPORTUNITY');
+  let run3 = await controller.startRun('', 'user-test', '');
   if (run3.status !== 'STOPPED' || run3.stopReason !== 'POLICY_BLOCKED') throw new Error('Failed Scenario C');
 
   // D
   console.log("Scenario D: Readiness blocked");
   global.current_opp = 'opp-readiness-block';
-  let runD = await controller.startRun('opp-readiness-block', 'APPLY_FOR_OPPORTUNITY');
+  let runD = await controller.startRun('', 'user-test', '');
   if (runD.status !== 'STOPPED' || runD.stopReason !== 'READINESS_BLOCKED') throw new Error('Failed Scenario D');
 
   // E
   console.log("Scenario E: Execution failure");
   global.current_opp = 'opp-exec-fail';
-  let runE = await controller.startRun('opp-exec-fail', 'APPLY_FOR_OPPORTUNITY');
+  let runE = await controller.startRun('', 'user-test', '');
   if (runE.status !== 'STOPPED' || runE.stopReason !== 'EXECUTION_FAILED') throw new Error('Failed Scenario E');
 
   // F
@@ -121,7 +121,7 @@ async function runTests() {
   // G
   console.log("Scenario G: Repeated identical action prevention");
   global.current_opp = 'opp-infinite';
-  let runG = await controller.startRun('opp-infinite', 'WAIT_FOR_CLIENT');
+  let runG = await controller.startRun('', 'user-test', '');
   // It should do 1 iteration of APPLY_NOW and stop on the second.
   // But wait! APPLY_NOW returns GOAL_ACHIEVED and stops instantly!
   // To test repeated actions, we need an action that DOES NOT stop immediately (e.g., executing without GOAL_ACHIEVED).
@@ -149,7 +149,7 @@ async function runTests() {
   console.log("Scenario K: Event-driven replan");
   global.current_opp = 'opp-event';
   global.event_strategy = 'ASK_CLIENT_FIRST';
-  let runK = await controller.startRun('opp-event', 'CLARIFY_REQUIREMENTS');
+  let runK = await controller.startRun('', 'user-test', '');
   // This executes REQUEST_CLARIFICATION and hits GOAL_ACHIEVED. 
   // Let's modify the orchestrator mock to not always GOAL_ACHIEVED for clarification?
   // Our code sets GOAL_ACHIEVED for any 'EXECUTED'. This is fine for demo bounds.
@@ -158,7 +158,7 @@ async function runTests() {
   // L
   console.log("Scenario L: Hard rejection remains absolute");
   global.current_opp = 'opp-hard-reject';
-  let runL = await controller.startRun('opp-hard-reject', 'APPLY_FOR_OPPORTUNITY');
+  let runL = await controller.startRun('', 'user-test', '');
   if (runL.status !== 'STOPPED' || runL.stopReason !== 'POLICY_BLOCKED') throw new Error('Failed Scenario L');
   console.log("ALL TESTS PASSED: phase-g4.14-hardening");
 

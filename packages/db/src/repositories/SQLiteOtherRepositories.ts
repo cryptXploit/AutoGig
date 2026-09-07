@@ -100,7 +100,7 @@ export class SQLitePreferenceRepository {
   }
 
   async savePreference(pref: Preference): Promise<void> {
-    this.db.prepare(`INSERT OR IGNORE INTO users (id, email) VALUES (?, ?)`).run(pref.userId || 'user-local', pref.userId + '@autogig.com');
+    this.db.prepare(`INSERT OR IGNORE INTO users (id, email) VALUES (?, ?)`).run(pref.userId || 'UNRESOLVED_LEGACY', pref.userId + '@autogig.com');
     this.db.prepare(`
       INSERT INTO preferences (userId, targetRate, minRate, blockedClients, preferredProjectTypes, riskTolerance, theme, language, reasoningDepth, proposalStrictness, evidenceStrictness, humanApprovalRequired, learningEnabled, refreshInterval)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -691,7 +691,7 @@ export class SQLiteOpportunityStrategyRepository {
     if (!row) return null;
     return {
       opportunityId: row.opportunityId,
-        userId: row.userId || 'user-local',
+        userId: row.userId || 'UNRESOLVED_LEGACY',
         memoryProvenance: row.memoryProvenance ? JSON.parse(row.memoryProvenance) : [],
         strategy: row.strategy as StrategyType,
       priority: row.priority as OpportunityPriority,
@@ -717,7 +717,7 @@ export class SQLiteOpportunityStrategyRepository {
     const rows = this.db.prepare('SELECT * FROM opportunity_strategy ORDER BY priorityScore DESC').all() as any[];
     return rows.map(row => ({
       opportunityId: row.opportunityId,
-        userId: row.userId || 'user-local',
+        userId: row.userId || 'UNRESOLVED_LEGACY',
         memoryProvenance: row.memoryProvenance ? JSON.parse(row.memoryProvenance) : [],
         strategy: row.strategy as StrategyType,
       priority: row.priority as OpportunityPriority,

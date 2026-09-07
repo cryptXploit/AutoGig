@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { DecisionTimeline } from '../../../components/DecisionTimeline';
+import { TruthCenter } from '../../../components/TruthCenter';
 import { ArrowLeft, CheckCircle, AlertTriangle, XOctagon, Loader2, DollarSign, Target, Shield, Clock, Activity, FileText, CheckSquare, Zap, AlertCircle, MessageSquare } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 

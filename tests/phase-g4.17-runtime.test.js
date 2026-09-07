@@ -121,7 +121,7 @@ async function runTests() {
      if (!expectedSummaryKeys.includes(k)) throw new Error("X. DTO Allowlist failed: Unknown key " + k);
   }
   
-  const expectedStepKeys = ['id', 'runId', 'opportunityId', 'iteration', 'stepType', 'status', 'title', 'summary', 'reason', 'timestamp', 'timestampSource', 'inputs', 'outputs', 'sourceReferences'];
+  const expectedStepKeys = ['id', 'runId', 'opportunityId', 'iteration', 'stepType', 'status', 'title', 'summary', 'reason', 'timestamp', 'timestampSource', 'inputs', 'outputs', 'sourceReferences', 'provenanceClass', 'epistemicStatus'];
   for (const step of traceA3.steps) {
      for (const k of Object.keys(step)) {
         if (!expectedStepKeys.includes(k)) throw new Error("X. DTO Allowlist failed: Unknown key " + k + " on step");

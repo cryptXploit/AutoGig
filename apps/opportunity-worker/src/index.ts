@@ -174,7 +174,7 @@ const { ActionType } = require('@autogig/core');
          try {
            let run = runRepo.getLatestByOpportunityId(oppId);
            if (!run || run.status !== 'RUNNING') {
-              run = await agentController.startRun(oppId, 'APPLY_FOR_OPPORTUNITY');
+              run = await agentController.startRun(oppId, 'user-1', 'APPLY_FOR_OPPORTUNITY');
            } else {
               run = await agentController.handleEvent(oppId, triggerEvent);
            }
